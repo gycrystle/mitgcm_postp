@@ -169,7 +169,12 @@ for it in itrs:
 
     
     plt.tight_layout(pad=1)
-    plt.savefig("../figures_relwind/w_mld2_ekmanpump_"+ str(it) + ".png")
+    if it ==0:
+        plt.savefig("./figures/w_mld2_ekmanpump_000"+ str(it) + ".png")
+    elif it < 1000:
+        plt.savefig("./figures/w_mld2_ekmanpump_0"+ str(it) + ".png")
+    else:
+        plt.savefig("./figures/w_mld2_ekmanpump_"+ str(it) + ".png")
 
 
 #plt.contour(xi, yi, zi, v, linewidths=0.5, colors='k')
