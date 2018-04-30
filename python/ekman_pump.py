@@ -1,4 +1,12 @@
-# python
+"""
+Python script to read and plot vertical velocity (W) output from MITgcm
+- Define Mixed layer depth with deltaT>0.5°C from the surface
+- Plot W at Mixed Layer depth
+- Plot Mid MLD and it's respective W
+- Plot W below mixed layer depth
+- Plot the wind stress
+- Compute Theoretical Ekman pumping
+"""
 
 import numpy as np
 import MITgcmutils as mit
@@ -21,7 +29,7 @@ dxV = 0.0*np.ones((250,250));
 mld  = 0.0*np.ones((250,250));
 mld_mid = 0.0*np.ones((250,250));
 mld_below = 0.0*np.ones((250,250));
-mld_ind  = 0.0*np.ones((250,250));
+mld_ind  = 0.0*np.ones((250,250)); #Mixed layer depth indices
 w_mld  = 0.0*np.ones((250,250));
 w_mld_mid = 0.0*np.ones((250,250));
 w_mld_below = 0.0*np.ones((250,250));
@@ -84,7 +92,7 @@ for it in itrs:
             dxtermy[j,(i+1)] = (termy[j,i+1]-termy[j,i])/dXC[j,i+1];
             W_tot[(j+1),(i+1)] = (dxtermy[j+1,i+1]-dytermx[j+1,i+1])/rho0;
 
-
+#Plot all figures
     #plt.figure()
     fig = plt.figure(figsize=(10,16))
     
@@ -175,6 +183,7 @@ for it in itrs:
         plt.savefig("./figures/w_mld2_ekmanpump_0"+ str(it) + ".png")
     else:
         plt.savefig("./figures/w_mld2_ekmanpump_"+ str(it) + ".png")
+    plt.close()
 
 
 #plt.contour(xi, yi, zi, v, linewidths=0.5, colors='k')
