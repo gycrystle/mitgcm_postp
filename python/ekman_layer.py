@@ -54,7 +54,7 @@ mld_range = np.linspace(-275.0, -25, 26, endpoint=True)
 w_range = np.linspace(-0.5, 0.5, 101, endpoint=True)
 
 
-itrs = [720, 1440, 2160, 2880, 3600] #, 2160, 2880, 3600, 4320, 5040, 5760, 6480, 7200]
+itrs = [720, 1440, 2160, 2880, 3600, 4320, 5040, 5760, 6480, 7200]
 for it in itrs:
     U = mit.rdmds('U',it)
     V = mit.rdmds('V',it)

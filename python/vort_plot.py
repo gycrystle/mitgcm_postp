@@ -23,8 +23,8 @@ YC = mit.rdmds('YC')
 dYC = mit.rdmds('DYC')
 RC = mit.rdmds('RC')
 
-dyU = 0.0*np.ones((250,250));
-dxV = 0.0*np.ones((250,250));
+dyU = 0.0*np.ones((40,250,250));
+dxV = 0.0*np.ones((40,250,250));
 
 mld  = 0.0*np.ones((250,250));
 mld_mid = 0.0*np.ones((250,250));
@@ -34,7 +34,7 @@ w_mld  = 0.0*np.ones((250,250));
 w_mld_mid = 0.0*np.ones((250,250));
 w_mld_below = 0.0*np.ones((250,250));
          
-zeta = 0.0*np.ones((250,250));
+zeta = 0.0*np.ones((40,250,250));
 zeta_intx = 0.0*np.ones((250,250));
 zeta_inty = 0.0*np.ones((250,250));
 #
@@ -48,13 +48,13 @@ W_tot = 0.0*np.ones((250,250));
 mld_range = np.linspace(-275.0, -25, 26, endpoint=True)
 w_range = np.linspace(-0.5, 0.5, 101, endpoint=True)
 
-itrs = [720, 1440, 2160, 2880, 3600, 4320, 5040, 5760, 6480, 7200]
+itrs = [2160, 2880, 3600] #, 2160, 2880, 3600, 4320, 5040, 5760, 6480, 7200]
 for it in itrs:
     U = mit.rdmds('U',it)
     V = mit.rdmds('V',it)
     W = mit.rdmds('W',it)
-    taux = mit.rdmds('diagTAUX',it)
-    tauy = mit.rdmds('diagTAUY',it)
+#    taux = mit.rdmds('diagTAUX',it)
+#    tauy = mit.rdmds('diagTAUY',it)
     
     Temp = mit.rdmds('T',it)
 
@@ -74,48 +74,35 @@ for it in itrs:
 
     for i in range(1,250):
         for j in range(1,250):
-            dyU[j,i] = (U[1,j,i]-U[1,j-1,i])/dYC[j,i];
-            dxV[j,i] = (V[1,j,i]-V[1,j,i-1])/dXC[j,i];
-            zeta[j,i] = dxV[j,i]-dyU[j,i];
+            #for k in range(0,40):
+            dyU[:,j,i] = (U[:,j,i]-U[:,j-1,i])/dYC[j,i];
+            dxV[:,j,i] = (V[:,j,i]-V[:,j,i-1])/dXC[j,i];
+            zeta[:,j,i] = dxV[:,j,i]-dyU[:,j,i];
 #
-    for i in range(1,249):
-        for j in range(1,249):
-            zeta_intx[j,i] =(zeta[j,i]+zeta[j+1,i])/2
-            zeta_inty[j,i] =(zeta[j,i]+zeta[j,i+1])/2
-#
-            termx[j,i] =taux[j,i]/(1e-4+zeta_intx[j,i])
-            termy[j,i] =tauy[j,i]/(1e-4+zeta_inty[j,i])
-#
-    for i in range(1,248):
-        for j in range(1,248):
-            dytermx[(j+1),i] = (termx[j+1,i]-termx[j,i])/dYC[j+1,i];
-            dxtermy[j,(i+1)] = (termy[j,i+1]-termy[j,i])/dXC[j,i+1];
-            W_tot[(j+1),(i+1)] = (dxtermy[j+1,i+1]-dytermx[j+1,i+1])/rho0;
-
 #Plot all figures
     #plt.figure()
-    fig = plt.figure(figsize=(10,16))
+    fig = plt.figure(figsize=(12,4))
     
     
-    ax1 = fig.add_subplot(4, 2, 1)
+    ax1 = fig.add_subplot(1, 2, 1)
     ax1.set_aspect(1)
     #plt.subplot(121, aspect='equal', adjustable='box-forced')
-    plt.contourf(XC*1e-3,YC*1e-3,mld_mid, mld_range,cmap=cm.Blues_r)
-    plt.colorbar(label="depth (m)")
+    plt.contourf(XC*1e-3,YC*1e-3,zeta[1,:,:]*1e5, 100,cmap=cm.inferno)
+    plt.colorbar(label=r'$\zeta$')
     plt.xlabel("x (km)")
     plt.ylabel("y (km)")
-    plt.title("Mid Mixed Layer")
+    plt.title("Vorticity")
     #plt.savefig("mld"+ str(i) + ".png")
 
-    ax7 = fig.add_subplot(4, 2, 3)
-    ax7.set_aspect(1)
+    ax7 = fig.add_subplot(1, 2, 2)
+    ax7.set_aspect(0.1)
     #plt.subplot(121, aspect='equal', adjustable='box-forced')
-    plt.contourf(XC*1e-3,YC*1e-3,mld, mld_range,cmap=cm.Blues_r)
+    plt.contourf(XC[125,:]*1e-3,RC.squeeze(),zeta[:,125,:]*1e5, 100,cmap=cm.hsv)
     plt.colorbar(label="depth (m)")
     plt.xlabel("x (km)")
     plt.ylabel("y (km)")
     plt.title("Mixed Layer Depth")
-
+    """
     ax8 = fig.add_subplot(4, 2, 5)
     ax8.set_aspect(1)
     #plt.subplot(121, aspect='equal', adjustable='box-forced)
@@ -174,16 +161,16 @@ for it in itrs:
     plt.xlabel("x (km)")
     plt.ylabel("y (km)")
     plt.title("Ekman pumping")
-
+    """
     
     plt.tight_layout(pad=1)
     if it ==0:
-        plt.savefig("./figures/w_mld2_ekmanpump_000"+ str(it) + ".png")
+        plt.savefig("./figures/vort_000"+ str(it) + ".png")
     elif it < 1000:
-        plt.savefig("./figures/w_mld2_ekmanpump_0"+ str(it) + ".png")
+        plt.savefig("./figures/vort_0"+ str(it) + ".png")
     else:
-        plt.savefig("./figures/w_mld2_ekmanpump_"+ str(it) + ".png")
-    plt.close()
+        plt.savefig("./figures/vort_"+ str(it) + ".png")
+#    plt.close()
 
 
 #plt.contour(xi, yi, zi, v, linewidths=0.5, colors='k')

@@ -18,7 +18,7 @@ v_range = np.linspace(-0.4, 0.4, 101, endpoint=True)
 #levels = np.linspace(-0.02, 0.02,6, endpoint=True)
 levels = np.concatenate((np.linspace(-0.5,0,10,endpoint=False),np.linspace(0.05,0.5,10,endpoint=True)),axis=0)
 #define time step to plot (one time step is 120s, 1 day = 86400 s = 720 time step
-itrs=np.arange(1170,10890,90)
+itrs=np.arange(0,7290,90)
 #itrs= [2160, 3600]
 
 # time loop

@@ -18,16 +18,19 @@ Wall=np.ones((40,250,250,120))
 plot_abs = 0
 
 #define time step to plot (one time step is 120s, 1 day = 86400 s = 720 time step
-itrs=np.arange(240,360,1)
+itrs=np.arange(120,240,1)
 dstart = (itrs[0]+1)*30/720#5
 dend = (itrs[-1]+1)*30/720#10
 #itrs= [3600]
 # time loop
 for it in itrs:
+    W = mit.rdmds('W',((it+1)*30))
+    """
     if (it+1)*30==1080:
         W = mit.rdmds('W',((it+2)*30))
     else:
         W = mit.rdmds('W',((it+1)*30))
+    """
     Wall[:,:,:,(it-itrs[0])]= W;
     W = []
 
