@@ -13,12 +13,14 @@ plt.ion()
 XC = mit.rdmds('XC')
 YC = mit.rdmds('YC')
 RC = mit.rdmds('RC')
+sec_x = int(XC.shape[1]/2)
+sec_y = int(YC.shape[0]/2)
 
 v_range = np.linspace(-0.6, 0.6, 101, endpoint=True)
 levels = np.concatenate((np.linspace(-0.5,0,10,endpoint=False),np.linspace(0.05,0.5,10,endpoint=True)),axis=0)
 #define time step to plot (one time step is 120s, 1 day = 86400 s = 720 time step
-itrs=np.arange(0,7380,180)
-#itrs= [1080]
+#itrs=np.arange(60,2700,120)
+itrs= [0, 720]#,720,1080,1200,1500,1800,1920]
 
 # time loop
 for it in itrs:
@@ -31,10 +33,10 @@ for it in itrs:
 #
     ax1 = fig.add_subplot(1, 2, 1)
     ax1.set_aspect(1)
-    plt.contourf(XC*1e-3,YC*1e-3,U[1,:,:],v_range,cmap=cm.seismic)
+    plt.contourf(XC*1e-3,YC*1e-3,U[0,:,:],v_range,cmap=cm.seismic)
     #plt.plot(XC[:,166]*1e-3,YC[:,166]*1e-3, ':')
     plt.colorbar(label='$U \ [m/s]$', format='%1.3f')
-    CS1 = plt.contour(XC[125,:]*1e-3,YC[:,125]*1e-3,U[1,:,:], levels, colors='k')
+    CS1 = plt.contour(XC[sec_y,:]*1e-3,YC[:,sec_x]*1e-3,U[0,:,:], levels, colors='k')
     plt.clabel(CS1, fmt='%2.2f', colors='k', fontsize=10)
 
     #plt.text(10,-1250,'$U_{max}=$ %1.3f $m/s$' % (wmax))
@@ -46,11 +48,11 @@ for it in itrs:
 #
     ax2 = fig.add_subplot(1, 2, 2)
     ax2.set_aspect(1)
-    plt.contourf(XC*1e-3,YC*1e-3,V[1,:,:],v_range,cmap=cm.seismic)#
+    plt.contourf(XC*1e-3,YC*1e-3,V[0,:,:],v_range,cmap=cm.seismic)#
     plt.colorbar(label='$V \ [m/s]$', format='%1.3f')
     
-    CS2 = plt.contour(XC[125,:]*1e-3,YC[:,125]*1e-3,V[1,:,:], levels, colors='k')
-    plt.clabel(CS2, fmt='%2.2f', colors='k', fontsize=10)
+#    CS2 = plt.contour(XC[125,:]*1e-3,YC[:,125]*1e-3,V[1,:,:], levels, colors='k')
+#    plt.clabel(CS2, fmt='%2.2f', colors='k', fontsize=10)
 
     #plt.text(10,-1250,'$U_{max}=$ %1.3f $m/s$' % (wmax))
     plt.text(10,-1350,'$V_{max}=$ %1.3f $m/s$' % (vmax))
@@ -68,16 +70,16 @@ for it in itrs:
         plt.savefig("./figures/U_surf_0"+ str(it) + ".png")
     else:
         plt.savefig("./figures/U_surf_"+ str(it) + ".png")
-    plt.close()
+#    plt.close()
 
     fig = plt.figure(figsize=(10,6))
 #
     #ax1 = fig.add_subplot(1, 2, 1)
-    plt.contourf(YC[:,125]*1e-3,RC.squeeze(),U[:,:,125],v_range,cmap=cm.seismic)
+    plt.contourf(YC[:,sec_x]*1e-3,RC.squeeze(),U[:,:,sec_x],v_range,cmap=cm.seismic)
     plt.colorbar(label='$U \ [m/s]$', format='%1.3f')
 #    
-    CS3 = plt.contour(YC[:,125]*1e-3,RC.squeeze(),U[:,:,125], levels, colors='k')
-    plt.clabel(CS3, fmt='%2.2f', colors='k', fontsize=10)
+#    CS3 = plt.contour(YC[:,sec_x]*1e-3,RC.squeeze(),U[:,:,sec_x], levels, colors='k')
+#    plt.clabel(CS3, fmt='%2.2f', colors='k', fontsize=10)
 
     plt.text(10,-1350,'$U_{max}=$ %1.3f $m/s$' % (umax))
 
@@ -110,5 +112,5 @@ for it in itrs:
         plt.savefig("./figures/U_section_0"+ str(it) + ".png")
     else:
         plt.savefig("./figures/U_section_"+ str(it) + ".png")
-    plt.close()
+#    plt.close()
 ###

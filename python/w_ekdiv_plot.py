@@ -22,17 +22,16 @@ class MidpointNormalize(colors.Normalize):
         return np.ma.masked_array(np.interp(value, x, y))
 
 ts = 60  # time step = ts*dt (in second); = 7200 = dumpfreq
-nr = 75  # no of grid vertical 
-nx = 330 # no of grid in x
-ny = 330 # no of grid in y
-endtime = 7200
-nstart = 60 # in day*2/24
+nr = 100  # no of grid vertical 
+nx = 180 # no of grid in x
+ny = 180 # no of grid in y
+endtime = 3600 # in time step = 120s
+nstart = 0 # in day*2/24
 nend = int(endtime/ts) # no of time step 
 f0 = 1e-4
 #define time step to plot (one time step is 120s, 1 day = 86400 s = 720 time step
 itrs=np.arange(nstart,nend,1)
 nit=itrs.size
-
 
 XC = mit.rdmds('XC')
 YC = mit.rdmds('YC')
@@ -55,6 +54,9 @@ Vg_all=np.zeros((nit,nr,ny,nx))
 Ut_all=np.zeros((nit,nr,ny,nx))
 Vt_all=np.zeros((nit,nr,ny,nx))
 
+u_wtall=np.zeros((nit,nr,ny,nx))
+v_wtall=np.zeros((nit,nr,ny,nx))
+
 Ug_c=np.zeros((nr,ny,nx))
 Vg_c=np.zeros((nr,ny,nx))
 
@@ -64,7 +66,7 @@ Vt_c=np.zeros((nr,ny,nx))
 dstart = (itrs[0]+1)*ts/720 #5
 dend = (itrs[-1]+1)*ts/720  #10
 #itrs= [3600]
-idepth = 58 # z indice for integration
+idepth = 99 # z indice for integration
 
 # time loop
 for it in itrs:
@@ -90,6 +92,10 @@ for it in itrs:
     dyP = np.diff(P, axis=1)/dY_Vg
     Ug = -dyP/f0
 
+# compute U ageostrophic from U bottom
+    u_wt = U - U[99,:,:]
+    v_wt = V - V[99,:,:] 
+#
 #Interpolate Ug in cell center, losing first grids(bottom and left)
     for z in np.arange(0,nr):
         for y in np.arange(0,ny):
@@ -102,16 +108,29 @@ for it in itrs:
     Ug_all[(it-itrs[0]),:,:,:]= Ug_c #cell centered Ug
     Ut_all[(it-itrs[0]),:,:,:]= Ut_c; #cell centered u_total
     Vt_all[(it-itrs[0]),:,:,:]= Vt_c; #cell centered v total
+#
+    u_wtall[(it-itrs[0]),:,:,:]= u_wt; #u-point u_wt
+    v_wtall[(it-itrs[0]),:,:,:]= v_wt; #v-point v_wt
+
 #======= time loop end
+
 # Compute ageostrophic flow
 Ue = Ut_all - Ug_all
 Ve = Vt_all - Vg_all
 # Compute ekman transport
 Mx = np.trapz(Ue[:,0:idepth,:,:],-RC[0:idepth].squeeze(), axis=1) 
 My = np.trapz(Ve[:,0:idepth,:,:],-RC[0:idepth].squeeze(), axis=1)
+
+Mx_wt = np.trapz(u_wtall[:,0:idepth,:,:],-RC[0:idepth].squeeze(), axis=1)
+My_wt = np.trapz(v_wtall[:,0:idepth,:,:],-RC[0:idepth].squeeze(), axis=1)
+
+
 # Compute the divergence
 dxMx = np.diff(Mx, axis=2)/np.tile(dXC[:,1:],[nit,1,1])
 dyMy = np.diff(My, axis=1)/np.tile(dYC[1:,:],[nit,1,1])
+
+dxMx_wt = np.diff(Mx_wt, axis=2)/np.tile(dXC[:,1:],[nit,1,1])
+dyMy_wt = np.diff(My_wt, axis=1)/np.tile(dYC[1:,:],[nit,1,1])
 
 dxMx_i=np.zeros((nit,ny,nx))
 dyMy_i=np.zeros((nit,ny,nx))
@@ -123,40 +142,60 @@ for it in np.arange(0,nit):
 
 #W_B = dxMx[:,1:,:] + dyMy[:,:,1:]
 W_B = dxMx_i + dyMy_i
+W_wt = dxMx_wt + dyMy_wt # no need to interpolate because already at cell center
 
 W_Bm = np.mean(W_B, axis=0)
 Mxm = np.mean(Mx, axis=0)
 Mym = np.mean(My, axis=0)
+
+Wm_wt = np.mean(W_wt, axis=0)
+Mxm_wt = np.mean(Mx_wt, axis=0)
+Mym_wt = np.mean(My_wt, axis=0)
 
 KEg = np.trapz((Ug_all[:,0:idepth,:,:]**2 + Vg_all[:,0:idepth,:,:]**2),axis=1)
 KEag = np.trapz((Ue[:,0:idepth,:,:]**2 + Ve[:,0:idepth,:,:]**2),axis=1)
 
 #============ PLOT ==========================
 # W_ekman bottom 
+
 wekmax=np.max(W_Bm)#*1e3
 wekmin=np.min(W_Bm)#*1e3
 wavminmax=max(abs(wekmin), abs(wekmax))
 w_range = np.linspace(-wavminmax, wavminmax, 101, endpoint=True)
+#w_range = np.linspace(-wavminmax, wavminmax, 101, endpoint=True)
+wt_range = 100
 #
 levels = np.concatenate((np.linspace(-0.5,0,10,endpoint=False),np.linspace(0.05,0.5,10,endpoint=True)),axis=0)
 #
 time = (itrs+1)*120*ts/3600
 #
-fig = plt.figure(figsize=(7.5,6))
-plt.contourf(XC*1e-3,YC*1e-3,W_Bm,w_range,cmap=cm.seismic)
+fig = plt.figure(figsize=(14,6))
+ax1 = fig.add_subplot(1, 2, 1)
+plt.contourf(XC*1e-3,YC*1e-3,W_Bm[plta:pltb,plta:pltb]*1e3,w_range,cmap=cm.seismic)
 plt.colorbar(label='$\overline{W} \ [mm/s]$', format='%1.3f')
-
 plt.text(50,120,'$W_{max}=$ %1.3f $mm/s$' % (wekmax))
 plt.text(50,50,'$W_{min}=$ %1.3f $mm/s$' % (wekmin))
 plt.xlabel("x (km)")
 plt.ylabel("y (km)")
-plt.title('5 days averaged Ekman pumping $\overline{W_B}$, day %d-%d' % (dstart, dend))
+plt.title(r'$U_e = U_t - U_g$ where $U_g$ calculated from geostrophic balance')
 #
+ax2 = fig.add_subplot(1, 2, 2)
+plt.contourf(xc_dom,yc_dom,Wm_wt[plta:pltb,plta:pltb]*1e3,w_range,cmap=cm.seismic)
+plt.colorbar(label='$\overline{W} \ [mm/s]$', format='%1.3f')
+plt.text(50,120,'$W_{max}=$ %1.3f $mm/s$' % (wekmax))
+plt.text(50,50,'$W_{min}=$ %1.3f $mm/s$' % (wekmin))
+plt.xlabel("x (km)")
+plt.ylabel("y (km)")
+plt.title(r'$U_e$ calculated from u - u(z=300)')
+#
+plt.suptitle('5 days averaged Ekman pumping $\overline{W_B}$, day %d-%d' % (dstart, dend))
 plt.tight_layout(pad=1)
-plt.savefig('./figures/W_B_day%d_%d.png' % (dstart, dend))
+plt.savefig('./figures/W_Bwt_day%d_%d.png' % (dstart, dend))
+#============================================================
 #Ekman transport Mx
-fig = plt.figure(figsize=(7.5,6))
-plt.contourf(XC*1e-3,YC*1e-3,Mxm,100,cmap=cm.seismic)
+fig = plt.figure(figsize=(14,6))
+ax1 = fig.add_subplot(1, 2, 1)
+plt.contourf(XC*1e-3,YC*1e-3,Mxm_wt,100,cmap=cm.seismic)
 plt.colorbar(label='$\overline{W} \ [mm/s]$', format='%1.3f')
 
 #plt.text(10,35,'$W_{max}=$ %1.3f $mm/s$' % (wekmax))
@@ -170,7 +209,7 @@ plt.savefig('./figures/Mx_day%d_%d.png' % (dstart, dend))
 
 #Ekman transport My
 fig = plt.figure(figsize=(7.5,6))
-plt.contourf(XC*1e-3,YC*1e-3,Mym,100,cmap=cm.seismic)
+plt.contourf(XC*1e-3,YC*1e-3,Mym_wt,100,cmap=cm.seismic)
 plt.colorbar(label='$\overline{W} \ [mm/s]$', format='%1.3f')
 
 #plt.text(10,35,'$W_{max}=$ %1.3f $mm/s$' % (wekmax))
@@ -181,7 +220,7 @@ plt.title('5 days averaged Ekman transport $\overline{M_y}$, day %d-%d' % (dstar
 #
 plt.tight_layout(pad=1)
 plt.savefig('./figures/My_day%d_%d.png' % (dstart, dend))
-
+"""
 # Kinetic Energy 
 plt.figure(figsize=(12,6))
 plt.plot(time,KEg[:,int(nx/2+20),int(nx/2+20)], label='geostrophic')
@@ -191,7 +230,9 @@ plt.xlabel("time (hour)")
 plt.legend()
 plt.title(r'$KE$ at 25km from eddy center, day %d-%d' % (dstart, dend))
 plt.savefig('./figures/KE.png')
-
+"""
+#
+#
 """
 
 plot_perturb = 1
