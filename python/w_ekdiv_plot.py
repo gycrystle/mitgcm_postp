@@ -29,6 +29,13 @@ endtime = 3600 # in time step = 120s
 nstart = 0 # in day*2/24
 nend = int(endtime/ts) # no of time step 
 f0 = 1e-4
+
+# select plot domain
+plta = 0
+pltb = -1
+xc_dom =XC[plta:pltb, plta:pltb]*1e-3
+yc_dom =YC[plta:pltb, plta:pltb]*1e-3
+
 #define time step to plot (one time step is 120s, 1 day = 86400 s = 720 time step
 itrs=np.arange(nstart,nend,1)
 nit=itrs.size
@@ -171,7 +178,7 @@ time = (itrs+1)*120*ts/3600
 #
 fig = plt.figure(figsize=(14,6))
 ax1 = fig.add_subplot(1, 2, 1)
-plt.contourf(XC*1e-3,YC*1e-3,W_Bm[plta:pltb,plta:pltb]*1e3,w_range,cmap=cm.seismic)
+plt.contourf(xc_dom,yc_dom,W_Bm[plta:pltb,plta:pltb]*1e3,w_range,cmap=cm.seismic)
 plt.colorbar(label='$\overline{W} \ [mm/s]$', format='%1.3f')
 plt.text(50,120,'$W_{max}=$ %1.3f $mm/s$' % (wekmax))
 plt.text(50,50,'$W_{min}=$ %1.3f $mm/s$' % (wekmin))
@@ -196,10 +203,7 @@ plt.savefig('./figures/W_Bwt_day%d_%d.png' % (dstart, dend))
 fig = plt.figure(figsize=(14,6))
 ax1 = fig.add_subplot(1, 2, 1)
 plt.contourf(XC*1e-3,YC*1e-3,Mxm_wt,100,cmap=cm.seismic)
-plt.colorbar(label='$\overline{W} \ [mm/s]$', format='%1.3f')
-
-#plt.text(10,35,'$W_{max}=$ %1.3f $mm/s$' % (wekmax))
-#plt.text(10,10,'$W_{min}=$ %1.3f $mm/s$' % (wekmin))
+plt.colorbar(label='$\overline{M_x} \ [m2/s]$', format='%1.3f')
 plt.xlabel("x (km)")
 plt.ylabel("y (km)")
 plt.title('5 days averaged Ekman transport $\overline{M_x}$, day %d-%d' % (dstart, dend))
