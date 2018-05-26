@@ -31,8 +31,8 @@ nend = int(endtime/ts) # no of time step
 f0 = 1e-4
 
 # select plot domain
-plta = 0
-pltb = -1
+plta = 31
+pltb = 151
 xc_dom =XC[plta:pltb, plta:pltb]*1e-3
 yc_dom =YC[plta:pltb, plta:pltb]*1e-3
 
@@ -195,36 +195,50 @@ plt.xlabel("x (km)")
 plt.ylabel("y (km)")
 plt.title(r'$U_e$ calculated from u - u(z=300)')
 #
-plt.suptitle('5 days averaged Ekman pumping $\overline{W_B}$, day %d-%d' % (dstart, dend))
+plt.suptitle('5 days averaged Ekman pumping $\overline{W_e}$, day %d-%d' % (dstart, dend))
 plt.tight_layout(pad=1)
-plt.savefig('./figures/W_Bwt_day%d_%d.png' % (dstart, dend))
+plt.savefig('./figures/W_ekman%d_%d.png' % (dstart, dend))
 #============================================================
 #Ekman transport Mx
-fig = plt.figure(figsize=(14,6))
+fig;
 ax1 = fig.add_subplot(1, 2, 1)
-plt.contourf(XC*1e-3,YC*1e-3,Mxm_wt,100,cmap=cm.seismic)
+plt.contourf(xc_dom,yc_dom,Mxm[plta:pltb, plta:pltb],100,cmap=cm.seismic)
 plt.colorbar(label='$\overline{M_x} \ [m2/s]$', format='%1.3f')
 plt.xlabel("x (km)")
 plt.ylabel("y (km)")
-plt.title('5 days averaged Ekman transport $\overline{M_x}$, day %d-%d' % (dstart, dend))
+plt.title(r'$U_e = U_t - U_g$ where $U_g$ calculated from geostrophic balance')
 #
+ax2 = fig.add_subplot(1, 2, 2)
+plt.contourf(xc_dom,yc_dom,Mxm_wt[plta:pltb, plta:pltb],100,cmap=cm.seismic)
+plt.colorbar(label='$\overline{M_x} \ [m2/s]$', format='%1.3f')
+plt.xlabel("x (km)")
+plt.ylabel("y (km)")
+plt.title(r'$U_e$ calculated from u - u(z=300)')
+#
+plt.suptitle('5 days averaged Ekman transport $\overline{M_x}$, day %d-%d' % (dstart, dend))
 plt.tight_layout(pad=1)
 plt.savefig('./figures/Mx_day%d_%d.png' % (dstart, dend))
 
 #Ekman transport My
-fig = plt.figure(figsize=(7.5,6))
-plt.contourf(XC*1e-3,YC*1e-3,Mym_wt,100,cmap=cm.seismic)
-plt.colorbar(label='$\overline{W} \ [mm/s]$', format='%1.3f')
-
-#plt.text(10,35,'$W_{max}=$ %1.3f $mm/s$' % (wekmax))
-#plt.text(10,10,'$W_{min}=$ %1.3f $mm/s$' % (wekmin))
+fig;
+ax1 = fig.add_subplot(1, 2, 1)
+plt.contourf(xc_dom,yc_dom,Mym[plta:pltb, plta:pltb],100,cmap=cm.seismic)
+plt.colorbar(label='$\overline{M_x} \ [m2/s]$', format='%1.3f')
 plt.xlabel("x (km)")
 plt.ylabel("y (km)")
-plt.title('5 days averaged Ekman transport $\overline{M_y}$, day %d-%d' % (dstart, dend))
+plt.title(r'$V_e = V_t - V_g$ where $V_g$ calculated from geostrophic balance')
 #
+ax2 = fig.add_subplot(1, 2, 2)
+plt.contourf(xc_dom,yc_dom,Mym_wt[plta:pltb, plta:pltb],100,cmap=cm.seismic)
+plt.colorbar(label='$\overline{M_x} \ [m2/s]$', format='%1.3f')
+plt.xlabel("x (km)")
+plt.ylabel("y (km)")
+plt.title(r'$V_e$ calculated from v - v(z=300)')
+#
+plt.suptitle('5 days averaged Ekman transport $\overline{M_y}$, day %d-%d' % (dstart, dend))
 plt.tight_layout(pad=1)
 plt.savefig('./figures/My_day%d_%d.png' % (dstart, dend))
-"""
+
 # Kinetic Energy 
 plt.figure(figsize=(12,6))
 plt.plot(time,KEg[:,int(nx/2+20),int(nx/2+20)], label='geostrophic')
@@ -234,7 +248,7 @@ plt.xlabel("time (hour)")
 plt.legend()
 plt.title(r'$KE$ at 25km from eddy center, day %d-%d' % (dstart, dend))
 plt.savefig('./figures/KE.png')
-"""
+
 #
 #
 """
