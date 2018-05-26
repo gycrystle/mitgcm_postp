@@ -33,8 +33,7 @@ f0 = 1e-4
 # select plot domain
 plta = 31
 pltb = 151
-xc_dom =XC[plta:pltb, plta:pltb]*1e-3
-yc_dom =YC[plta:pltb, plta:pltb]*1e-3
+
 
 #define time step to plot (one time step is 120s, 1 day = 86400 s = 720 time step
 itrs=np.arange(nstart,nend,1)
@@ -51,6 +50,9 @@ dXG = mit.rdmds('DXG')
 dYG = mit.rdmds('DYG')
 dX_Ug = np.tile(np.diff(XC, axis=1),[nr,1,1])
 dY_Vg = np.tile(np.diff(YC, axis=0),[nr,1,1])
+
+xc_dom =XC[plta:pltb, plta:pltb]*1e-3
+yc_dom =YC[plta:pltb, plta:pltb]*1e-3
 
 YUg = YC+0.5*dYC # grid where Ug calculated
 XUg = XC+0.5*dXC # grid where Vg calculated
@@ -149,7 +151,7 @@ for it in np.arange(0,nit):
 
 #W_B = dxMx[:,1:,:] + dyMy[:,:,1:]
 W_B = dxMx_i + dyMy_i
-W_wt = dxMx_wt + dyMy_wt # no need to interpolate because already at cell center
+W_wt = dxMx_wt[:,1:,:] + dyMy_wt[:,:,1:] # no need to interpolate because already at cell center
 
 W_Bm = np.mean(W_B, axis=0)
 Mxm = np.mean(Mx, axis=0)
@@ -161,22 +163,31 @@ Mym_wt = np.mean(My_wt, axis=0)
 
 KEg = np.trapz((Ug_all[:,0:idepth,:,:]**2 + Vg_all[:,0:idepth,:,:]**2),axis=1)
 KEag = np.trapz((Ue[:,0:idepth,:,:]**2 + Ve[:,0:idepth,:,:]**2),axis=1)
+KEwt = np.trapz((u_wtall[:,0:idepth,:,:]**2 + v_wtall[:,0:idepth,:,:]**2),axis=1)
 
 #============ PLOT ==========================
 # W_ekman bottom 
 
-wekmax=np.max(W_Bm)#*1e3
-wekmin=np.min(W_Bm)#*1e3
+wekmax=np.max(W_Bm)*1e3
+wekmin=np.min(W_Bm)*1e3
 wavminmax=max(abs(wekmin), abs(wekmax))
 w_range = np.linspace(-wavminmax, wavminmax, 101, endpoint=True)
+wtmax=np.max(Wm_wt)*1e3
+wtmin=np.min(Wm_wt)*1e3
+wtminmax=max(abs(wtmin), abs(wtmax))
 #w_range = np.linspace(-wavminmax, wavminmax, 101, endpoint=True)
-wt_range = 100
+wt_range = np.linspace(-wtminmax, wtminmax, 101, endpoint=True)
+mminmax = max(abs(np.min(Mxm)), abs(np.max(Mxm)),abs(np.min(Mym)), abs(np.max(Mym)))
+mwtminmax = max(abs(np.min(Mxm_wt)), abs(np.max(Mxm_wt)),abs(np.min(Mym_wt)), abs(np.max(Mym_wt)))
+m_range = np.linspace(-mminmax, mminmax, 101, endpoint=True)
+mwt_range = np.linspace(-mwtminmax, mwtminmax, 101, endpoint=True)
+#norm = colors.BoundaryNorm(boundaries=bounds, ncolors=256)
 #
 levels = np.concatenate((np.linspace(-0.5,0,10,endpoint=False),np.linspace(0.05,0.5,10,endpoint=True)),axis=0)
 #
 time = (itrs+1)*120*ts/3600
 #
-fig = plt.figure(figsize=(14,6))
+fig = plt.figure(figsize=(15,6.5))
 ax1 = fig.add_subplot(1, 2, 1)
 plt.contourf(xc_dom,yc_dom,W_Bm[plta:pltb,plta:pltb]*1e3,w_range,cmap=cm.seismic)
 plt.colorbar(label='$\overline{W} \ [mm/s]$', format='%1.3f')
@@ -184,32 +195,33 @@ plt.text(50,120,'$W_{max}=$ %1.3f $mm/s$' % (wekmax))
 plt.text(50,50,'$W_{min}=$ %1.3f $mm/s$' % (wekmin))
 plt.xlabel("x (km)")
 plt.ylabel("y (km)")
-plt.title(r'$U_e = U_t - U_g$ where $U_g$ calculated from geostrophic balance')
+plt.title(r'$U_e = U_t - U_g$ where $U_g$ calculated from geostrophic balance', fontsize=11)
 #
 ax2 = fig.add_subplot(1, 2, 2)
-plt.contourf(xc_dom,yc_dom,Wm_wt[plta:pltb,plta:pltb]*1e3,w_range,cmap=cm.seismic)
+plt.contourf(xc_dom,yc_dom,Wm_wt[plta:pltb,plta:pltb]*1e3,wt_range,cmap=cm.seismic)
 plt.colorbar(label='$\overline{W} \ [mm/s]$', format='%1.3f')
 plt.text(50,120,'$W_{max}=$ %1.3f $mm/s$' % (wekmax))
 plt.text(50,50,'$W_{min}=$ %1.3f $mm/s$' % (wekmin))
 plt.xlabel("x (km)")
 plt.ylabel("y (km)")
-plt.title(r'$U_e$ calculated from u - u(z=300)')
+plt.title(r'$U_e$ calculated from u - u(z=300)', fontsize=11)
 #
-plt.suptitle('5 days averaged Ekman pumping $\overline{W_e}$, day %d-%d' % (dstart, dend))
+plt.suptitle('5 days averaged Ekman pumping $\overline{W_e}$, day %d-%d' % (dstart, dend), fontsize=14)
 plt.tight_layout(pad=1)
+plt.subplots_adjust(top=0.89)
 plt.savefig('./figures/W_ekman%d_%d.png' % (dstart, dend))
 #============================================================
 #Ekman transport Mx
-fig;
+fig  = plt.figure(figsize=(15,6.5))
 ax1 = fig.add_subplot(1, 2, 1)
-plt.contourf(xc_dom,yc_dom,Mxm[plta:pltb, plta:pltb],100,cmap=cm.seismic)
+plt.contourf(xc_dom,yc_dom,Mxm[plta:pltb, plta:pltb],m_range,cmap=cm.seismic)
 plt.colorbar(label='$\overline{M_x} \ [m2/s]$', format='%1.3f')
 plt.xlabel("x (km)")
 plt.ylabel("y (km)")
 plt.title(r'$U_e = U_t - U_g$ where $U_g$ calculated from geostrophic balance')
 #
 ax2 = fig.add_subplot(1, 2, 2)
-plt.contourf(xc_dom,yc_dom,Mxm_wt[plta:pltb, plta:pltb],100,cmap=cm.seismic)
+plt.contourf(xc_dom,yc_dom,Mxm_wt[plta:pltb, plta:pltb],mwt_range,cmap=cm.seismic)
 plt.colorbar(label='$\overline{M_x} \ [m2/s]$', format='%1.3f')
 plt.xlabel("x (km)")
 plt.ylabel("y (km)")
@@ -217,19 +229,20 @@ plt.title(r'$U_e$ calculated from u - u(z=300)')
 #
 plt.suptitle('5 days averaged Ekman transport $\overline{M_x}$, day %d-%d' % (dstart, dend))
 plt.tight_layout(pad=1)
+plt.subplots_adjust(top=0.89)
 plt.savefig('./figures/Mx_day%d_%d.png' % (dstart, dend))
 
 #Ekman transport My
-fig;
+fig  = plt.figure(figsize=(15,6.5))
 ax1 = fig.add_subplot(1, 2, 1)
-plt.contourf(xc_dom,yc_dom,Mym[plta:pltb, plta:pltb],100,cmap=cm.seismic)
+plt.contourf(xc_dom,yc_dom,Mym[plta:pltb, plta:pltb],m_range,cmap=cm.seismic)
 plt.colorbar(label='$\overline{M_x} \ [m2/s]$', format='%1.3f')
 plt.xlabel("x (km)")
 plt.ylabel("y (km)")
 plt.title(r'$V_e = V_t - V_g$ where $V_g$ calculated from geostrophic balance')
 #
 ax2 = fig.add_subplot(1, 2, 2)
-plt.contourf(xc_dom,yc_dom,Mym_wt[plta:pltb, plta:pltb],100,cmap=cm.seismic)
+plt.contourf(xc_dom,yc_dom,Mym_wt[plta:pltb, plta:pltb],mwt_range,cmap=cm.seismic)
 plt.colorbar(label='$\overline{M_x} \ [m2/s]$', format='%1.3f')
 plt.xlabel("x (km)")
 plt.ylabel("y (km)")
@@ -237,15 +250,17 @@ plt.title(r'$V_e$ calculated from v - v(z=300)')
 #
 plt.suptitle('5 days averaged Ekman transport $\overline{M_y}$, day %d-%d' % (dstart, dend))
 plt.tight_layout(pad=1)
+plt.subplots_adjust(top=0.89)
 plt.savefig('./figures/My_day%d_%d.png' % (dstart, dend))
 
 # Kinetic Energy 
 plt.figure(figsize=(12,6))
 plt.plot(time,KEg[:,int(nx/2+20),int(nx/2+20)], label='geostrophic')
 plt.plot(time,KEag[:,int(nx/2+20),int(nx/2+20)], label='ageostrophic')
+plt.plot(time,KEag[:,int(nx/2+20),int(nx/2+20)], label='ageostrophic -u(300)')
 plt.ylabel(r'$KE$')
 plt.xlabel("time (hour)")
-plt.legend()
+plt.legend(loc='best', fontsize=10)
 plt.title(r'$KE$ at 25km from eddy center, day %d-%d' % (dstart, dend))
 plt.savefig('./figures/KE.png')
 
