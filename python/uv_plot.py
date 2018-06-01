@@ -19,8 +19,8 @@ sec_y = int(YC.shape[0]/2)
 v_range = np.linspace(-0.6, 0.6, 101, endpoint=True)
 levels = np.concatenate((np.linspace(-0.5,0,10,endpoint=False),np.linspace(0.05,0.5,10,endpoint=True)),axis=0)
 #define time step to plot (one time step is 120s, 1 day = 86400 s = 720 time step
-#itrs=np.arange(60,2700,120)
-itrs= [0, 720]#,720,1080,1200,1500,1800,1920]
+itrs=np.arange(7200,10810,120)
+#itrs= [1200]# 720, 1440, 2160, 2880, 3600, 4320]#,720,1080,1200,1500,1800,1920]
 
 # time loop
 for it in itrs:
@@ -70,7 +70,7 @@ for it in itrs:
         plt.savefig("./figures/U_surf_0"+ str(it) + ".png")
     else:
         plt.savefig("./figures/U_surf_"+ str(it) + ".png")
-#    plt.close()
+    plt.close()
 
     fig = plt.figure(figsize=(10,6))
 #
@@ -112,5 +112,5 @@ for it in itrs:
         plt.savefig("./figures/U_section_0"+ str(it) + ".png")
     else:
         plt.savefig("./figures/U_section_"+ str(it) + ".png")
-#    plt.close()
+    plt.close()
 ###

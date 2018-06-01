@@ -22,18 +22,21 @@ class MidpointNormalize(colors.Normalize):
         return np.ma.masked_array(np.interp(value, x, y))
 
 ts = 60  # time step = ts*dt (in second); = 7200 = dumpfreq
-nr = 100  # no of grid vertical 
-nx = 180 # no of grid in x
-ny = 180 # no of grid in y
-endtime = 3600 # in time step = 120s
-nstart = 0 # in day*2/24
+nr = 75  # no of grid vertical 
+nx = 330 # no of grid in x
+ny = 330 # no of grid in y
+endtime = 10800 # in time step = 120s
+nstart = 120 # in day*2/24
 nend = int(endtime/ts) # no of time step 
 f0 = 1e-4
+rho0 = 999.8
+Rmax = 25e3
+vmax = 0.4
 
 # select plot domain
-plta = 31
-pltb = 151
-
+plta = 40
+pltb = 290
+idepth = 58
 
 #define time step to plot (one time step is 120s, 1 day = 86400 s = 720 time step
 itrs=np.arange(nstart,nend,1)
@@ -68,6 +71,8 @@ v_wtall=np.zeros((nit,nr,ny,nx))
 
 Ug_c=np.zeros((nr,ny,nx))
 Vg_c=np.zeros((nr,ny,nx))
+Ug300_c=np.zeros((ny,nx))
+Vg300_c=np.zeros((ny,nx))
 
 Ut_c=np.zeros((nr,ny,nx))
 Vt_c=np.zeros((nr,ny,nx))
@@ -75,7 +80,7 @@ Vt_c=np.zeros((nr,ny,nx))
 dstart = (itrs[0]+1)*ts/720 #5
 dend = (itrs[-1]+1)*ts/720  #10
 #itrs= [3600]
-idepth = 99 # z indice for integration
+#idepth = 99 # z indice for integration
 
 # time loop
 for it in itrs:
@@ -94,27 +99,33 @@ for it in itrs:
     P = mit.rdmds('PH',((it+1)*ts))
 #
     #dxP = np.diff(P, axis=2)/np.tile(dXC[:,1:],[nr,1,1])
-    dxP = np.diff(P, axis=2)/dX_Ug
-    Vg = dxP/f0
+#    dxP = np.diff(P, axis=2)/dX_Ug
+#    Vg = dxP/f0
+    dxP300 = np.diff(P[idepth,:,:], axis=1)/np.diff(XC, axis=1)
+    Vg300 = dxP300/f0
 #
     #dyP = np.diff(P, axis=1)/np.tile(dYC[1:,:],[nr,1,1])
-    dyP = np.diff(P, axis=1)/dY_Vg
-    Ug = -dyP/f0
-
+#    dyP = np.diff(P, axis=1)/dY_Vg
+#    Ug = -dyP/f0
+    dyP300 = np.diff(P[idepth,:,:], axis=0)/np.diff(YC, axis=0)
+    Ug300 = -dyP300/f0
 # compute U ageostrophic from U bottom
-    u_wt = U - U[99,:,:]
-    v_wt = V - V[99,:,:] 
+    u_wt = U - U[idepth,:,:]
+    v_wt = V - V[idepth,:,:] 
 #
 #Interpolate Ug in cell center, losing first grids(bottom and left)
     for z in np.arange(0,nr):
         for y in np.arange(0,ny):
-            Vg_c[z,y,:] = np.interp(XC[y,:],XUg[y,:-1],Vg[z,y,:])
+#            Vg_c[z,y,:] = np.interp(XC[y,:],XUg[y,:-1],Vg[z,y,:])
+            Vg300_c[y,:] = np.interp(XC[y,:],XUg[y,:-1],Vg300[y,:])
             Ut_c[z,y,:] = np.interp(XC[y,:],XG[y,:],U[z,y,:])
         for x in np.arange(0,nx):
-            Ug_c[z,:,x] = np.interp(YC[:,x],YUg[:-1,x],Ug[z,:,x])
+#            Ug_c[z,:,x] = np.interp(YC[:,x],YUg[:-1,x],Ug[z,:,x])
+            Ug300_c[:,x] = np.interp(YC[:,x],YUg[:-1,x],Ug300[:,x])
             Vt_c[z,:,x] = np.interp(YC[:,x],YG[:,x],V[z,:,x]) #verify if V points = YUg
-    Vg_all[(it-itrs[0]),:,:,:]= Vg_c #cell centered Vg
-    Ug_all[(it-itrs[0]),:,:,:]= Ug_c #cell centered Ug
+#
+    Vg_all[(it-itrs[0]),:,:,:]= Vg300_c #cell centered Vg
+    Ug_all[(it-itrs[0]),:,:,:]= Ug300_c #cell centered Ug
     Ut_all[(it-itrs[0]),:,:,:]= Ut_c; #cell centered u_total
     Vt_all[(it-itrs[0]),:,:,:]= Vt_c; #cell centered v total
 #
@@ -147,19 +158,23 @@ for it in np.arange(0,nit):
     for y in np.arange(0,ny):
         dxMx_i[it,y,:] = np.interp(XC[y,:],XUg[y,:-1],dxMx[it,y,:])
     for x in np.arange(0,nx):
-        dxMx_i[it,:,x] = np.interp(YC[:,x],YUg[:-1,x],dyMy[it,:,x])
+        dyMy_i[it,:,x] = np.interp(YC[:,x],YUg[:-1,x],dyMy[it,:,x])
 
-#W_B = dxMx[:,1:,:] + dyMy[:,:,1:]
-W_B = dxMx_i + dyMy_i
+# Normalization
+taux = mit.rdmds('diagTAUX',1080)
+tau0 = np.max(taux)
+Roe = np.max(u_wtall)/(Rmax*f0)
+W_B = (dxMx_i + dyMy_i)
 W_wt = dxMx_wt[:,1:,:] + dyMy_wt[:,:,1:] # no need to interpolate because already at cell center
 
 W_Bm = np.mean(W_B, axis=0)
 Mxm = np.mean(Mx, axis=0)
 Mym = np.mean(My, axis=0)
 
-Wm_wt = np.mean(W_wt, axis=0)
-Mxm_wt = np.mean(Mx_wt, axis=0)
-Mym_wt = np.mean(My_wt, axis=0)
+Wm_wt = np.mean(W_wt, axis=0)/(tau0*Roe/(rho0*f0*Rmax))
+Mxm_wt = np.mean(Mx_wt, axis=0)/(tau0*Roe/(rho0*f0))
+Mym_wt = np.mean(My_wt, axis=0)/(tau0/(rho0*f0))
+
 
 KEg = np.trapz((Ug_all[:,0:idepth,:,:]**2 + Vg_all[:,0:idepth,:,:]**2),axis=1)
 KEag = np.trapz((Ue[:,0:idepth,:,:]**2 + Ve[:,0:idepth,:,:]**2),axis=1)
@@ -178,6 +193,7 @@ wtminmax=max(abs(wtmin), abs(wtmax))
 #w_range = np.linspace(-wavminmax, wavminmax, 101, endpoint=True)
 wt_range = np.linspace(-wtminmax, wtminmax, 101, endpoint=True)
 mminmax = max(abs(np.min(Mxm)), abs(np.max(Mxm)),abs(np.min(Mym)), abs(np.max(Mym)))
+
 mwtminmax = max(abs(np.min(Mxm_wt)), abs(np.max(Mxm_wt)),abs(np.min(Mym_wt)), abs(np.max(Mym_wt)))
 m_range = np.linspace(-mminmax, mminmax, 101, endpoint=True)
 mwt_range = np.linspace(-mwtminmax, mwtminmax, 101, endpoint=True)
@@ -219,7 +235,7 @@ plt.ylabel("y (km)")
 plt.title(r'$U_e = U_t - U_g$ where $U_g$ calculated from geostrophic balance', fontsize=11)
 #
 ax2 = fig.add_subplot(1, 2, 2)
-plt.contourf(xc_dom,yc_dom,Mxm_wt[plta:pltb, plta:pltb],mwt_range,cmap=cm.seismic)
+plt.contourf(xc_dom,yc_dom,Mxm_wt[plta:pltb, plta:pltb],100, norm=MidpointNormalize(midpoint=0.0),cmap=cm.seismic)
 plt.colorbar(label='$\overline{M_x} \ [m^2/s]$', format='%1.3f')
 plt.xlabel("x (km)")
 plt.ylabel("y (km)")
@@ -240,7 +256,7 @@ plt.ylabel("y (km)")
 plt.title(r'$V_e = V_t - V_g$ where $V_g$ calculated from geostrophic balance', fontsize=11)
 #
 ax2 = fig.add_subplot(1, 2, 2)
-plt.contourf(xc_dom,yc_dom,Mym_wt[plta:pltb, plta:pltb],mwt_range,cmap=cm.seismic)
+plt.contourf(xc_dom,yc_dom,Mym_wt[plta:pltb, plta:pltb],101,norm=MidpointNormalize(midpoint=Mym_wt[plta,plta]),cmap=cm.seismic)
 plt.colorbar(label='$\overline{M_x} \ [m^2/s]$', format='%1.3f')
 plt.xlabel("x (km)")
 plt.ylabel("y (km)")
@@ -255,7 +271,7 @@ plt.savefig('./figures/My_day%d_%d.png' % (dstart, dend))
 plt.figure(figsize=(12,6))
 plt.plot(time,KEg[:,int(nx/2+20),int(nx/2+20)], label='geostrophic')
 plt.plot(time,KEag[:,int(nx/2+20),int(nx/2+20)], label='ageostrophic')
-plt.plot(time,KEag[:,int(nx/2+20),int(nx/2+20)], label='ageostrophic -u(300)')
+plt.plot(time,KEwt[:,int(nx/2+20),int(nx/2+20)], label='ageostrophic -u(300)')
 plt.ylabel(r'$\propto KE$')
 plt.xlabel("time (hour)")
 plt.legend(loc='best', fontsize=10)

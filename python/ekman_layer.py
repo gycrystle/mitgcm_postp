@@ -16,7 +16,7 @@ from matplotlib import cm
 
 plt.ion()
 
-rho0 = 1028.0
+rho0 = 999.8
 f0 = 1e-4
 XC = mit.rdmds('XC')
 dXC = mit.rdmds('DXC')

@@ -14,20 +14,20 @@ XC = mit.rdmds('XC')
 YC = mit.rdmds('YC')
 RC = mit.rdmds('RC')
 
-v_range = 100
-#v_range = np.linspace(-0.1, 0.1, 91, endpoint=True)
+#v_range = 100
+v_range = np.linspace(-0.11, 0.11, 101, endpoint=True)
 #levels = np.linspace(-0.02, 0.02,6, endpoint=True)
 levels = np.concatenate((np.linspace(-0.5,0,10,endpoint=False),np.linspace(0.05,0.5,10,endpoint=True)),axis=0)
 #define time step to plot (one time step is 120s, 1 day = 86400 s = 720 time step
-#itrs=np.arange(0,10810,60)
-itrs= [120]#3600, 10800]#,180,360,720,780,900,1440]#[0,60,120,180,240,300,360,420,480,540,600,660,720]
-idepth = 50
+itrs=np.arange(7800,10810,60)
+#itrs= [1200,2400,3600,4800,6000,6720]#3600, 10800]#,180,360,720,780,900,1440]#[0,60,120,180,240,300,360,420,480,540,600,660,720]
+idepth = 58
 si_x = XC.shape[1]
 si_y = YC.shape[0]
 sec_x = int(si_x/2)
 sec_y = int(si_y/2)
-plta = 0
-pltb = -1
+plta = 40
+pltb = 290
 xc_dom =XC[plta:pltb, plta:pltb]*1e-3
 yc_dom =YC[plta:pltb, plta:pltb]*1e-3
 
@@ -46,8 +46,8 @@ for it in itrs:
     CS2 = plt.contour(XC[sec_x,plta:pltb]*1e-3,YC[plta:pltb,sec_y]*1e-3,W[idepth,plta:pltb,plta:pltb]*1e3, levels, colors='0.6')
     plt.clabel(CS2, fmt='%2.2f', colors='k', fontsize=10)
 
-    plt.text(375,390,'$W_{max}=$ %1.3f $mm/s$' % (wmax))
-    plt.text(375,375,'$W_{min}=$ %1.3f $mm/s$' % (wmin))
+    plt.text(480,480,'$W_{extrema}=$[ %1.3f, %1.3f] $mm/s$' % (wmin, wmax))
+#    plt.text(375,375,'$W_{min}=$ %1.3f $mm/s$' % (wmin))
 
     plt.xlabel("x (km)")
     plt.ylabel("y (km)")
@@ -62,7 +62,7 @@ for it in itrs:
         plt.savefig('./figures/W_%d_0%d.png' % (RC[idepth],it))
     else:
         plt.savefig('./figures/W_%d_%d.png' % (RC[idepth],it))
-#    plt.close()
+    plt.close()
 
 
 #
@@ -92,7 +92,7 @@ for it in itrs:
         plt.savefig('./figures/Wi_%d_0%d.png' % (RC[idepth],it))
     else:
         plt.savefig('./figures/Wi_%d_%d.png' % (RC[idepth],it))
-#    plt.close()
+    plt.close()
 #
     fig = plt.figure(figsize=(10,6))
 #
@@ -120,5 +120,5 @@ for it in itrs:
         plt.savefig('./figures/W_section_0%d.png' % (it))
     else:
         plt.savefig('./figures/W_section_%d.png' % (it))
-#    plt.close()
+    plt.close()
 
