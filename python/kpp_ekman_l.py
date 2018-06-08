@@ -15,14 +15,14 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 
 plt.ion()
-day_s = 0
-day_e = 10
+day_s = 2
+day_e = 3
 
-diagfreq = 86400
+dumpfreq = 86400
 timestep = 120
 nstart = int(day_s*86400/dumpfreq) # integer of dumpfrec, either start from zero or 
 nend = int(day_e*86400/dumpfreq) # no of time step 
-itrs = diagfreq/timestep*np.arange(nstart,nend)
+itrs = dumpfreq/timestep*np.arange(nstart,nend)
 
 rho0 = 999.8
 f0 = 1e-4
@@ -40,6 +40,8 @@ ny = YC[:,0].size
 
 dyU = np.zeros((ny,nx));
 dxV = np.zeros((ny,nx));
+mld_ind = np.zeros((ny,nx));
+mld = np.zeros((ny,nx));
 
 """
 mld  = 0.0*np.ones((250,250));
@@ -55,8 +57,8 @@ zeta = np.zeros((ny,nx));
 zeta_intx = np.zeros((ny,nx));
 zeta_inty = np.zeros((ny,nx));
 #
-termx =0.0*np.ones((250,250));
-termy =0.0*np.ones((250,250));
+termx = np.zeros((ny,nx));
+termy = np.zeros((ny,nx));
 #
 dytermx = np.zeros((ny,nx));
 dxtermy = np.zeros((ny,nx));
@@ -73,22 +75,22 @@ for it in itrs:
     W = mit.rdmds('W',it)
     taux = mit.rdmds('diagTAUX',it)
     tauy = mit.rdmds('diagTAUY',it)
-    nuz_atu = mit.rdmds('GGL90viscArU',it)
-    nuz_atv = mit.rdmds('GGL90viscArV',it)
-    ekman_layer_u = np.sqrt(2.0*nuz_atu[1,:,:]/f0)
+    nuz = mit.rdmds('KPPviscAz',it)
+#    nuz_atv = mit.rdmds('GGL90viscArV',it)
+    ek_depth = np.sqrt(2.0*nuz[1,:,:]/f0)
 #    ekman_layer_v = np.sqrt(2.0*nuz_atv/f0)
 #    
-#    Temp = mit.rdmds('T',it)
+    Temp = mit.rdmds('T',it)
 #
-#    temp_surf= Temp[1,:,:]
+    temp_surf= Temp[0,:,:]
 #    
-#    Tdiff=abs(Temp-temp_surf)
+    Tdiff=abs(Temp-temp_surf)
 #
 #
-#    for x in range(0, 250):
-#        for y in range(0, 250):
-#            mld_ind[y,x]=np.where(Tdiff[:,y,x] > 0.5)[0][0]
-#            mld[y,x]=RC[int(mld_ind[y,x])]
+    for x in range(0, nx):
+        for y in range(0, ny):
+            mld_ind[y,x]=np.where(Tdiff[:,y,x] > 0.5)[0][0]
+            mld[y,x]=RC[int(mld_ind[y,x])]
 #            mld_mid[y,x]=RC[int(round(mld_ind[y,x]/2))]
 #            mld_below[y,x]=RC[int(mld_ind[y,x]+9)]
 #            w_mld[y,x]=W[int(mld_ind[y,x]),y,x]
@@ -117,10 +119,10 @@ for it in itrs:
 #
 #Plot all figures
     #plt.figure()
-    fig = plt.figure(figsize=(10,8))
+    fig = plt.figure(figsize=(5,8))
     #plot wind stress
-    ax3 = fig.add_subplot(2, 2, 1)
-    ax3.set_aspect(1)
+    ax1 = plt.subplot(211)
+    ax1.set_aspect(1)
     #
     plt.contourf(XC*1e-3,YC*1e-3,taux)
     plt.colorbar(label=r'$\tau_x \ [N/m^2]$')
@@ -128,77 +130,60 @@ for it in itrs:
     plt.ylabel("y (km)")
     plt.title(r'Wind stress $\tau_x$')
 
-    ax5 = fig.add_subplot(2, 2, 2)
-    ax5.set_aspect(1)
-    #
-    plt.contourf(XC*1e-3,YC*1e-3,tauy)
-    plt.colorbar(label=r'$\tau_y \ [N/m^2]$')
-    plt.xlabel("x (km)")
-    plt.ylabel("y (km)")
-    plt.title(r'Wind stress $\tau_y$')
-
-    """
-    #plot ekman layer depth
-    ax1 = fig.add_subplot(2, 2, 2)
-    ax1.set_aspect(1)
-    #
-    plt.contourf(XC*1e-3,YC*1e-3,-ekman_layer_u, 20,cmap=cm.Blues_r)
-#    plt.contour(XC*1e-3,-YC,-ekman_layer_u,zcont,colors='k')
-    plt.colorbar(label="depth (m)")
-    plt.xlabel("x (km)")
-    plt.ylabel("y (km)")
-    plt.title("Ekman Layer depth")
-    """
-
-    ax2 = fig.add_subplot(2, 2, 3)
+    
+    #eddy visc
+    ax2 = plt.subplot(212)
     ax2.set_aspect(1)
     #
-    plt.contourf(XC*1e-3,YC*1e-3,nuz_atu[1,:,:])
+    plt.contourf(XC*1e-3,YC*1e-3,nuz[1,:,:], 100)
     plt.colorbar(label=r'$\nu_z \ [m^2/s]$')
     plt.xlabel("x (km)")
     plt.ylabel("y (km)")
-    plt.title("Eddy viscosity at U-point")
-
-    ax4 = fig.add_subplot(2, 2, 4)
-    ax4.set_aspect(1)
-    #
-    plt.contourf(XC*1e-3,YC*1e-3,nuz_atv[1,:,:])
-    plt.colorbar(label=r'$\nu_z \ [m^2/s]$')
-    plt.xlabel("x (km)")
-    plt.ylabel("y (km)")
-    plt.title("Eddy viscosity @ V-point")
-
+    plt.title("Eddy viscosity @ surface")
     plt.tight_layout(pad=1)
     if it ==0:
+        plt.savefig("./figures/windstress_visc_0000"+ str(it) + ".png")
+    elif it < 100:
         plt.savefig("./figures/windstress_visc_000"+ str(it) + ".png")
     elif it < 1000:
+        plt.savefig("./figures/windstress_visc_00"+ str(it) + ".png")
+    elif it < 10000:
         plt.savefig("./figures/windstress_visc_0"+ str(it) + ".png")
     else:
         plt.savefig("./figures/windstress_visc_"+ str(it) + ".png")
-    plt.close()
+#    plt.close()
 
-
-    #plot ekman layer depth
-    ax7 = plt.figure(figsize=(7.5,6))
-#    ax7.set_aspect(1)
-    #
-    plt.contourf(XC*1e-3,YC*1e-3,-ekman_layer_u, 20,cmap=cm.Blues_r)
-#    plt.contour(XC*1e-3,-YC,-ekman_layer_u,zcont,colors='k')
+    #plot ekman layer depth vs mld
+    fig = plt.figure(figsize=(5,8))
+    ax1 = plt.subplot(211)
+    ax1.set_aspect(1)
+#
+    plt.contourf(XC*1e-3,YC*1e-3,-ek_depth, 20,cmap=cm.Blues_r)
     plt.colorbar(label="depth (m)")
     plt.xlabel("x (km)")
     plt.ylabel("y (km)")
     plt.title("Ekman Layer depth")
-
-    #plot w @ ekman layer
-
+#
+    ax2 = plt.subplot(212)
+    ax2.set_aspect(1)
+    plt.contourf(XC*1e-3,YC*1e-3,mld, 20,cmap=cm.Blues_r)
+    plt.colorbar(label="depth (m)")
+    plt.xlabel("x (km)")
+    plt.ylabel("y (km)")
+    plt.title("Mixed Layer depth")
     plt.tight_layout(pad=1)
+
     if it ==0:
-        plt.savefig("./figures/ek_layer_000"+ str(it) + ".png")
+        plt.savefig("./figures/ek_depth_0000"+ str(it) + ".png")
+    elif it < 100:
+        plt.savefig("./figures/ek_depth_000"+ str(it) + ".png")
     elif it < 1000:
-        plt.savefig("./figures/ek_layer_0"+ str(it) + ".png")
+        plt.savefig("./figures/ek_depth_00"+ str(it) + ".png")
+    elif it < 10000:
+        plt.savefig("./figures/ek_depth_0"+ str(it) + ".png")
     else:
-        plt.savefig("./figures/ek_layer_"+ str(it) + ".png")
-    plt.close()
+        plt.savefig("./figures/ek_depth_"+ str(it) + ".png")
+#    plt.close()
 
 """
     #plot ekman pumping   
