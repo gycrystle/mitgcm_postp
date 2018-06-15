@@ -22,15 +22,18 @@ class MidpointNormalize(colors.Normalize):
         return np.ma.masked_array(np.interp(value, x, y))
 
 # select plot domain
-plta = 30
-pltb = 150
-idepth = 99
+plta = 40
+pltb = 290
+idepth = 24
 
-timestep = 180 #timestep input in second
-dumpfreq = 10800 # in second
+# choose how to compute ageostrophic component
+ubottom = 0 #ubottom = 1, similar to wenegrat  thomas
 
-day_s = 10
-day_e = 15
+timestep = 120 #timestep input in second
+dumpfreq = 7200 # in second
+
+day_s = 15
+day_e = 20
 
 ts = dumpfreq/timestep  # time step = ts*dt (in second); = 7200 = dumpfreq
 
@@ -101,7 +104,9 @@ V_cg_all= np.zeros((nit,nr,ny,nx))
 
 # To compute W_stern
 dyU = np.zeros((ny,nx));
+dxU = np.zeros((ny,nx));
 dxV = np.zeros((ny,nx));
+dxV_c = np.zeros((ny,nx));
 
 zeta = np.zeros((ny,nx));
 zeta_intx = np.zeros((ny,nx));
@@ -113,7 +118,8 @@ termy = np.zeros((ny,nx));
 dytermx = np.zeros((ny,nx));
 dxtermy = np.zeros((ny,nx));
 W_stern = np.zeros((ny,nx));
-W_sternall = np.zeros((int(nit/8+1),ny,nx));
+W_sternall = np.zeros((int(nit/itpd+1),ny,nx));
+W_b = np.zeros((int(nit/itpd+1),ny,nx));
 
 termx2 = np.zeros((ny,nx));
 termy2 = np.zeros((ny,nx));
@@ -121,13 +127,15 @@ termy2 = np.zeros((ny,nx));
 dytermx2 = np.zeros((ny,nx));
 dxtermy2 = np.zeros((ny,nx));
 W_stern2 = np.zeros((ny,nx));
-W_sternall2 = np.zeros((int(nit/8+1),ny,nx));
+W_sternall2 = np.zeros((int(nit/itpd+1),ny,nx));
 
 
 dstart = day_s #5
 dend = day_e # (itrs[-1]+1)*ts/720  #10
 #itrs= [3600]
 #idepth = 99 # z indice for integration
+U0 = mit.rdmds('U',0)
+V0 = mit.rdmds('V',0)
 
 # time loop
 for it in itrs:
@@ -157,9 +165,14 @@ for it in itrs:
     dyP300 = np.diff(P[idepth,:,:], axis=0)/np.diff(YC, axis=0)
     Ug300 = -dyP300/f0
 #
-# compute U ageostrophic from U bottom
-    u_wt = U - U[idepth,:,:]
-    v_wt = V - V[idepth,:,:] 
+# compute U ageostrophic from U bottom or U_0
+    if ubottom == 1:
+        u_wt = U - U[idepth,:,:]
+        v_wt = V - V[idepth,:,:] 
+    else:
+        u_wt = U - U0
+        v_wt = V - V0
+
 #
 #Interpolate Ug in cell center, losing first grids(bottom and left)
     for z in np.arange(0,nr):
@@ -171,12 +184,14 @@ for it in itrs:
             Ug_c[z,:,x] = np.interp(YC[:,x],YUg[:-1,x],Ug[z,:,x])
             Ug300_c[:,x] = np.interp(YC[:,x],YUg[:-1,x],Ug300[:,x])
             Vt_c[z,:,x] = np.interp(YC[:,x],YG[:,x],V[z,:,x]) #verify if V points = YUg
-#
+# transform u and v at cell center 
+    U_theta = Vt_c*np.cos(thetaC) - Ut_c*np.sin(thetaC)
+#    U_r = U_c*np.cos(thetaC)+V_c*np.sin(thetaC)
 # transform u_geostrophic to cylindrical to compute cyclogeo vel
     U_theta_g = Vg_c*np.cos(thetaC)-Ug_c*np.sin(thetaC)
 #    U_r_g = Ug_c*np.cos(thetaC) + Vg_c*np.sin(thetaC)
 # Tangential vel component of gradient wind, cell centered
-    U_theta_cygeo = -(f0*radC/2)+np.sqrt(f0**2*radC**2/4 - f0*radC*U_theta_g/2)
+    U_theta_cygeo = (f0*radC/2)-np.sqrt(f0**2*radC**2/4 - f0*radC*U_theta_g)
 # transform U_cyclogeo to cartesian
     U_cygeo = - U_theta_cygeo*np.sin(thetaC) # Ur_cygeo*np.cos(thetaC)
     V_cygeo = U_theta_cygeo*np.cos(thetaC) # Ur_cygeo*np.sin(thetaC)
@@ -201,30 +216,43 @@ for it in itrs:
             for j in range(1,ny):
                 dyU[j,i] = (U[1,j,i]-U[1,j-1,i])/dYC[j,i];
                 dxV[j,i] = (V[1,j,i]-V[1,j,i-1])/dXC[j,i];
+                dxU[j,i] = (U[1,j,i]-U[1,j,i-1])/dXC[j,i];
                 zeta[j,i] = dxV[j,i]-dyU[j,i];
+# Interpolate dxV from cell corner to cell center
+#        for z in np.arange(0,nr):
+        for y in np.arange(0,ny):
+            dxV_c[y,:] = np.interp(XC[y,:],XG[y,:],dxV[y,:])
+#        for z in np.arange(0,nr):
+        for x in np.arange(0,nx):
+            dxV_c[:,x] = np.interp(YC[:,x],YG[:,x],dxV_c[:,x])
 #
         for i in range(1,nx-1):
             for j in range(1,ny-1):
-                zeta_intx[j,i] =(zeta[j,i]+zeta[j+1,i])/2
-                zeta_inty[j,i] =(zeta[j,i]+zeta[j,i+1])/2
+                zeta_intx[j,i] =(zeta[j,i]+zeta[j+1,i])/2 #vorticity at u point
+                zeta_inty[j,i] =(zeta[j,i]+zeta[j,i+1])/2 #vorticity at v point
 #
                 termx[j,i] =taux[j,i]/(1e-4+zeta_intx[j,i])
                 termy[j,i] =tauy[j,i]/(1e-4+zeta_inty[j,i])
-                termx2[j,i] =taux[j,i]/(1e-4+2*zeta_intx[j,i])
-                termy2[j,i] =tauy[j,i]/(1e-4+2*zeta_inty[j,i])
+#                termx2[j,i] =taux[j,i]/(1e-4+2*zeta_intx[j,i])
+#                termy2[j,i] =tauy[j,i]/(1e-4+2*zeta_inty[j,i])
 #
         for i in range(1,nx-2):
             for j in range(1,ny-2):
                 dytermx[(j+1),i] = (termx[j+1,i]-termx[j,i])/dYC[j+1,i];
                 dxtermy[j,(i+1)] = (termy[j,i+1]-termy[j,i])/dXC[j,i+1];
-                dytermx2[(j+1),i] = (termx2[j+1,i]-termx2[j,i])/dYC[j+1,i];
-                dxtermy2[j,(i+1)] = (termy2[j,i+1]-termy2[j,i])/dXC[j,i+1];
+#                dytermx2[(j+1),i] = (termx2[j+1,i]-termx2[j,i])/dYC[j+1,i];
+#                dxtermy2[j,(i+1)] = (termy2[j,i+1]-termy2[j,i])/dXC[j,i+1];
 #
                 W_stern[(j+1),(i+1)] = (dxtermy[j+1,i+1]-dytermx[j+1,i+1])/rho0;
-                W_stern2[(j+1),(i+1)] = (dxtermy2[j+1,i+1]-dytermx2[j+1,i+1])/rho0;
+#                W_stern2[(j+1),(i+1)] = (dxtermy2[j+1,i+1]-dytermx2[j+1,i+1])/rho0;
+#
         W_sternall[int((it-itrs[0])/itpd),:,:]= W_stern; #u-point u_wt
-        W_sternall2[int((it-itrs[0])/itpd),:,:]= W_stern2; #
-
+#        W_sternall2[int((it-itrs[0])/itpd),:,:]= W_stern2; #
+# Compute correction term by bruno
+        drUth=-dxU*np.sin(thetaC)*np.cos(thetaC)+dxV_c*(np.cos(thetaC)**2)
+        omega_0 = (2/radC-1)*U_theta[0,:,:] + drUth
+        B = taux*np.sin(thetaC)*(drUth-U_theta[0,:,:]/radC)/radC/(f0+omega_0)**2 #correction term bruno
+        W_b[int((it-itrs[0])/itpd),:,:]= W_stern+B;
 
 #======= time loop end
 
@@ -301,7 +329,8 @@ We_g300 = np.mean((dxMx_g300i + dyMy_g300i), axis=0)
 We_cyg = np.mean((dxMx_cygi + dyMy_cygi), axis=0)
 We_wt = np.mean((dxMx_wt[:,1:,:] + dyMy_wt[:,:,1:]), axis=0) # no need to interpolate because already at cell center
 We_stern=np.mean(W_sternall, axis=0)
-We_stern2=np.mean(W_sternall2, axis=0)
+We_bd = np.mean(W_b, axis=0)
+#We_stern2=np.mean(W_sternall2, axis=0)
 
 #W_Bm = np.mean(W_B, axis=0)
 
@@ -496,15 +525,15 @@ plt.title(r'$\overline{W_{stern}}=\overline{\frac{1}{\rho_0} \nabla \times \left
 ###
 ax6 = plt.subplot(236, sharex=ax1)
 ax6.set_aspect(1)
-plt.contourf(xc_dom,yc_dom,We_stern2[plta:pltb,plta:pltb]*1e3,we_range,cmap=cm.seismic)#
+plt.contourf(xc_dom,yc_dom,We_bd[plta:pltb,plta:pltb]*1e3,we_range,cmap=cm.seismic)#
 cb=plt.colorbar(label="W (mm/s)", format='%1.3f')
 cb.set_label(r'$W \, (mm/s)$', labelpad=-40, y=1.1, rotation=0)
 #CS2 = plt.contour(xc_dom,yc_dom,Wmint[plta:pltb,plta:pltb]*1e3, levels, colors='0.6')
 #plt.clabel(CS2, fmt='%2.2f', colors='k', fontsize=10)
-plt.text(480,480,'$W_{extrema}=$ [%1.3f, %1.3f] $mm/s$' % (np.min(We_stern2)*1e3,np.max(We_stern2)*1e3), fontsize=10)
+plt.text(480,480,'$W_{extrema}=$ [%1.3f, %1.3f] $mm/s$' % (np.min(We_bd)*1e3,np.max(We_bd)*1e3), fontsize=10)
 plt.xlabel("x (km)")
 plt.ylabel("y (km)")
-plt.title(r'$\overline{W_{stern*}}=\overline{\frac{1}{\rho_0} \nabla \times \left[\frac{\tau}{f+2\zeta}\right]}$', fontsize=14)
+plt.title(r'$\overline{W_{stern*}}=\overline{\frac{1}{\rho_0} \nabla \times \left[\frac{\tau}{f+\zeta}\right]+Correction}$', fontsize=14)
 
 plt.tight_layout (pad = 1)
 plt.savefig('./figures/W_ek_day%d-%d.png' % (dstart, dend))

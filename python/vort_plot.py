@@ -8,6 +8,9 @@ from MITgcmutils import rdmds
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import matplotlib.colors as colors
+#import cv2 as cv
+
+plt.ion()
 
 class MidpointNormalize(colors.Normalize):
     def __init__(self, vmin=None, vmax=None, midpoint=None, clip=False):
@@ -18,21 +21,39 @@ class MidpointNormalize(colors.Normalize):
         # simple example...
         x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
         return np.ma.masked_array(np.interp(value, x, y))
-
-
-plt.ion()
+def center_of_mass(X):
+    # calculate center of mass of a closed polygon
+    x = X[:,0]
+    y = X[:,1]
+    g = (x[:-1]*y[1:] - x[1:]*y[:-1])
+    A = 0.5*g.sum()
+    cx = ((x[:-1] + x[1:])*g).sum()
+    cy = ((y[:-1] + y[1:])*g).sum()
+    return 1./(6*A)*np.array([cx,cy])
 
 nit = 60 # no of time step 
 ts = 60  # time step = ts*dt (in second); 
+timestep = 180 #timestep input in second
+dumpfreq = 10800 # file every 3 hours for dumpfreq 10800
+file_dit = dumpfreq/timestep
+day_s = 0
+day_e = 15
+startfile = day_s*file_dit #or any integer*file_dit
+endfile = day_e*86400/timestep + 50 #1 day 
+itrs = np.arange(startfile,endfile, file_dit)
 
-#vort_range = np.linspace(-0.5, 0.5, 101, endpoint=True)
-vort_range = 101
 
-#itrs = np.arange(0, 7210, 60)
-itrs = [7200] #, 2160, 2880, 3600, 4320, 5040, 5760, 6480, 7200]
+vort_range = np.linspace(-0.7, 0.7, 101, endpoint=True)
+vorticks = np.linspace(-0.7, 0.7, 11, endpoint=True)
+zero_contour = [0]
+#vort_range = 101
 
+#itrs = np.arange(0, 7210, 2400)
+#itrs = [0,2400,4800, 7200] #, 2160, 2880, 3600, 4320, 5040, 5760, 6480, 7200]
 
+nit = itrs.size
 rho0 = 999.8
+f0 = 1e-4
 XC = mit.rdmds('XC')
 dXC = mit.rdmds('DXC')
 YC = mit.rdmds('YC')
@@ -47,9 +68,10 @@ ny = YC[:,0].size
 
 U_c = np.zeros((nr,ny,nx))
 V_c = np.zeros((nr,ny,nx))
+svortc = np.zeros((nit))
 
 # values for plots
-depth_plot_ratio= 0.7
+depth_plot_ratio= 0.7#7
 plta = 30
 pltb = 150
 xc_d = XC[plta:pltb,plta:pltb]*1e-3
@@ -75,6 +97,12 @@ dxV = np.zeros((nr,ny,nx));
 zeta = np.zeros((nr,ny,nx));
 ke_range = np.linspace(0,8,100)
 ke_range = 99
+fig1 = plt.figure(figsize=(4.5,3))
+figt = fig1.add_subplot(1, 1, 1)
+plt.xlabel("x (km)")
+plt.ylabel(r'$\frac{\zeta_0}{|f|}$')
+plt.title(r'Surface vorticity section')
+
 for it in itrs:
     U = mit.rdmds('U',it)
     V = mit.rdmds('V',it)
@@ -94,26 +122,41 @@ for it in itrs:
             V_c[z,:,x] = np.interp(YC[:,x],YG[:,x],V[z,:,x])
 
     KE_m =(U_c**2 + V_c**2)/2
+    svortc [int(it/file_dit)]=np.min(zeta[0,:,:]) #file_dit
 #    KE_m =np.sum((U**2 + V**2), axis=0)
 #
-    zetamin = np.min(zeta)*1e5
+    zetamin = np.min(zeta)/f0
 #############Plot figures ##############
+    figt.plot(XC[sec_y,plta:pltb]*1e-3,zeta[0,sec_y,plta:pltb]/f0, label='t=%d hr' %(int(it*timestep/3600)))
     #plt.figure()
     fig = plt.figure(figsize=(12,4))
 #
     ax1 = fig.add_subplot(1, 2, 1)
     ax1.set_aspect(1)
-    plt.contourf(xc_d,yc_d,zeta[0,plta:pltb,plta:pltb]*1e5, 100,vmin=zetamin,vmax=-zetamin,cmap=cm.seismic)
-    plt.colorbar(label=r'$\zeta \ 10^5 s^{-1}$')
+    plt.contourf(xc_d,yc_d,zeta[0,plta:pltb,plta:pltb]/f0, vort_range,cmap=cm.seismic)
+#    plt.contourf(xc_d,yc_d,zeta[0,plta:pltb,plta:pltb]/f0, vort_range,vmin=zetamin,vmax=-zetamin,cmap=cm.seismic)
+    cb=plt.colorbar(format='%.2f', ticks=vorticks)
+    cb.set_label(r'$\frac{\zeta}{|f|}$', labelpad=-40, y=1.1, rotation=0)
+    CS2 = plt.contour(xc_d,yc_d,zeta[0,plta:pltb,plta:pltb]/f0, zero_contour, colors='0.6')
+    c =  center_of_mass(CS2.allsegs[-1][0])
+    ax1.plot(c[0],c[1], marker="+", markersize=10, color='0.6')
+#    plt.show()
+#    M = cv.moments(CS2)
+#    cx = int(M['m10']/M['m00'])
+#    cy = int(M['m01']/M['m00'])
+#    plt.plot(cx,cy, marker="+", markersize=10, color='0.6')
+#    plt.clabel(CS2, fmt='%2.2f', colors='k', fontsize=10)
+#
     plt.xlabel("x (km)")
     plt.ylabel("y (km)")
-    plt.title(r'Surface vorticity, $\zeta \ 10^5 s^{-1}$')
+    plt.title(r'Surface vorticity, $\frac{\zeta}{f}$')
 #
     ax2 = fig.add_subplot(1, 2, 2)
     ax2.set_aspect(depth_plot_ratio)
     #plt.subplot(121, aspect='equal', adjustable='box-forced')
-    plt.contourf (XC[sec_y,plta:pltb]*1e-3, RC.squeeze(), zeta[:, sec_y,plta:pltb]*1e5, 100,vmin=zetamin,vmax=-zetamin,cmap=cm.seismic)
-    plt.colorbar(label=r'$\zeta \ 10^5 s^{-1}$')
+    plt.contourf (XC[sec_y,plta:pltb]*1e-3, RC.squeeze(), zeta[:, sec_y,plta:pltb]/f0, vort_range,cmap=cm.seismic)
+    cb=plt.colorbar(format='%.2f', ticks=vorticks)
+    cb.set_label(r'$\frac{\zeta}{|f|}$', labelpad=-40, y=1.1, rotation=0)
     plt.xlabel("x (km)")
     plt.ylabel("z (m)")
     plt.title("Vorticity")
@@ -129,7 +172,45 @@ for it in itrs:
         plt.savefig("./figures/vort_0"+ str(it) + ".png")
     else:
         plt.savefig("./figures/vort_"+ str(it) + ".png")
-#    plt.close()
+    plt.close()
+
+    fig = plt.figure(figsize=(4.7,4))
+#
+#    ax1 = fig.add_subplot(1, 2, 1)
+#    ax1.set_aspect(1)
+    plt.contourf(xc_d,yc_d,zeta[0,plta:pltb,plta:pltb]/f0, vort_range,cmap=cm.seismic)
+#    plt.contourf(xc_d,yc_d,zeta[0,plta:pltb,plta:pltb]/f0, vort_range,vmin=zetamin,vmax=-zetamin,cmap=cm.seismic)
+#    plt.colorbar(label=r'$\frac{\zeta}{|f|}$')
+    cb=plt.colorbar(format='%.2f', ticks=vorticks)
+    cb.set_label(r'$\frac{\zeta}{|f|}$', labelpad=-40, y=1.1, rotation=0)
+    CS2 = plt.contour(xc_d,yc_d,zeta[0,plta:pltb,plta:pltb]/f0, zero_contour, colors='0.6')
+    c =  center_of_mass(CS2.allsegs[-1][0])
+    plt.plot(c[0],c[1], marker="+", markersize=10, color='0.6')
+    plt.text(475,475,r'$\frac{\zeta_{min}}{|f|}=$ %1.3f' % (np.min(zeta/f0)))
+    plt.show()
+#    M = cv.moments(CS2)
+#    cx = int(M['m10']/M['m00'])
+#    cy = int(M['m01']/M['m00'])
+#    plt.plot(cx,cy, marker="+", markersize=10, color='0.6')
+#    plt.clabel(CS2, fmt='%2.2f', colors='k', fontsize=10)
+#
+    plt.xlabel("x (km)")
+    plt.ylabel("y (km)")
+    plt.title(r'Surface vorticity, $\frac{\zeta}{|f|}$, time step %d hr' % (int(it*timestep/3600)))
+#
+    plt.tight_layout(pad=1)
+    if it ==0:
+        plt.savefig("./figures/svort_0000"+ str(it) + ".png")
+    elif it < 100:
+        plt.savefig("./figures/svort_000"+ str(it) + ".png")
+    elif it < 1000:
+        plt.savefig("./figures/svort_00"+ str(it) + ".png")
+    elif it < 10000:
+        plt.savefig("./figures/svort_0"+ str(it) + ".png")
+    else:
+        plt.savefig("./figures/svort_"+ str(it) + ".png")
+    plt.close()
+
 ############# KE ####################################
     fig = plt.figure(figsize=(12,4))
 #
@@ -139,7 +220,7 @@ for it in itrs:
     plt.colorbar(label=r'$KE  m^2s^{-2}$')
     plt.xlabel("x (km)")
     plt.ylabel("y (km)")
-    plt.title(r'KE \  m^2s^{-2}$')
+    plt.title(r'KE $m^2s^{-2}$')
 #
     ax2 = fig.add_subplot(1, 2, 2)
     ax2.set_aspect(depth_plot_ratio)
@@ -161,11 +242,21 @@ for it in itrs:
         plt.savefig("./figures/KEc_0"+ str(it) + ".png")
     else:
         plt.savefig("./figures/KEc_"+ str(it) + ".png")
-#    plt.close()
+    plt.close()
+# surface vort core
+plt.tight_layout(pad=1)
+fig = plt.figure(figsize=(5,3))
+plt.plot(itrs*timestep/3600,svortc/f0)
+plt.xlabel("time (hour)")
+plt.ylabel(r'$\frac{\zeta}{|f|}$')
+plt.title(r'Minimum Surface vorticity, $\frac{\zeta_{min}}{|f|}$')
+plt.tight_layout(pad=1)
+plt.savefig("./figures/Surfvortmin.png")
+
 
 ##========== from diag ====================================
-itrsd = np.arange(6720, 7200, 480)
-
+#itrsd = np.arange(7200, 7210, 720)
+itrsd = [0]
 for it in itrsd:
 #    vort = mit.rdmds('momvort',it)
     KE = mit.rdmds('momKE',it)
@@ -183,9 +274,9 @@ for it in itrsd:
     #plt.savefig("mld"+ str(i) + ".png")
 
     ax7 = fig.add_subplot(1, 2, 2)
-    ax7.set_aspect(0.01)
+    ax7.set_aspect(depth_plot_ratio)
     #plt.subplot(121, aspect='equal', adjustable='box-forced')
-    plt.contourf(XC[sec_y,plta:pltb]*1e-3,RC.squeeze(),vort[:,sec_y,plta:pltb]*1e5, vort_range,cmap=cm.seismic)
+    plt.contourf(XC[sec_y,plta:pltb]*1e-3,RC.squeeze(),vort[:,sec_y,plta:pltb]/f0, vort_range,cmap=cm.seismic)
     plt.colorbar(label=r'$\zeta \ 10^5 s^{-1}$')
     plt.xlabel("x (km)")
     plt.ylabel("z (m)")
@@ -202,6 +293,7 @@ for it in itrsd:
     """
 
 # KE
+    """
     fig = plt.figure(figsize=(12,4))    
 
     ax1 = fig.add_subplot(1, 2, 1)
@@ -231,7 +323,7 @@ for it in itrsd:
     else:
         plt.savefig("./figures/KE_"+ str(it) + ".png")
 #    plt.close()
-
+    """
 """
 #plt.contour(xi, yi, zi, v, linewidths=0.5, colors='k')
 #plt.contourf(xi, yi, zi, v, cmap=plt.cm.jet)

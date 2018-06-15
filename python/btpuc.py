@@ -45,7 +45,7 @@ timestep = 180 #timestep input in second
 dumpfreq = 10800 # in second
 
 day_s = 0
-day_e = 15
+day_e = 5
 
 ts = dumpfreq/timestep  # time step = ts*dt (in second); = 7200 = dumpfreq
 

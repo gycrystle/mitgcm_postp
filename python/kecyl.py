@@ -36,8 +36,8 @@ class MidpointNormalize(colors.Normalize):
         return np.ma.masked_array(np.interp(value, x, y))
 
 # select plot domain
-plta = 30
-pltb = 150
+plta = 40
+pltb = 290
 idepth = 16
 depth_plot_ratio = 0.7
 
@@ -45,7 +45,7 @@ timestep = 180 #timestep input in second
 dumpfreq = 10800 # in second
 
 day_s = 0
-day_e = 15
+day_e = 30
 
 ts = dumpfreq/timestep  # time step = ts*dt (in second); = 7200 = dumpfreq
 
@@ -123,34 +123,50 @@ for it in itrs:
 KE_theta_tot = np.trapz(KE_theta,-RC.squeeze(), axis=1)
 KE_theta_tot = np.trapz(KE_theta_tot,YC[:,icx], axis=1)
 KE_theta_tot = np.trapz(KE_theta_tot,XC[icy,:], axis=1)
+lnKEt = np.log(KE_theta_tot)
 #
 KE_r_tot = np.trapz(KE_r,-RC.squeeze(), axis=1)
 KE_r_tot = np.trapz(KE_r_tot,YC[:,icx], axis=1)
 KE_r_tot = np.trapz(KE_r_tot,XC[icy,:], axis=1)
+lnKEr = np.log(KE_r_tot)
+lnKEtot = np.log(KE_theta_tot+KE_r_tot)
 #
 #    it_hour = int(it*dumpfreq/3600)
 ##### plot figure of KE evolution
 # Kinetic Energy 
 plt.figure(figsize=(12,6))
 plt.plot(time,KE_theta_tot, label=r'$KE_\theta$')
-#plt.plot(time,KEag[:,int(nx/2+20),int(nx/2+20)], label='ageostrophic')
+#
 plt.plot(time,KE_r_tot, label=r'$KE_r$')
-plt.plot(time,(KE_theta_tot + KE_r_tot), label=r'$KE_total$')
+plt.plot(time,(KE_theta_tot + KE_r_tot), label=r'$KE_{total}$')
 plt.ylabel(r'$\propto KE$')
 plt.xlabel("time (hour)")
 plt.legend(loc='best', fontsize=10)
 plt.title(r'$\propto KE$ total, day %d-%d' % (dstart, dend))
-#    fig = plt.figure(figsize=(5.5,9))
 #
-#    ax1 = plt.subplot(211)
-#    ax1.set_aspect(1)
 plt.xlabel("time (hour)")
 plt.ylabel(r'$KE (m^2s^{-2})$')
-#    plt.title(r'Kinetic Energy' )#% (RC[idepth], it_hour),fontsize=11)
-
+#
 plt.tight_layout (pad = 1)
 plt.savefig('./figures/KE_time_evol.png')
-plt.close()
+#plt.close()
+#
+plt.figure(figsize=(12,6))
+plt.plot(time,lnKEt, label=r'$ln KE_\theta$')
+plt.plot(time,lnKEr, label=r'$ln KE_r$')
+plt.plot(time,lnKEtot, label=r'$ln KE_{total}$')
+#plt.plot(time,(KE_theta_tot + KE_r_tot), label=r'$KE_total$')
+plt.ylabel(r'$\propto ln KE$')
+plt.xlabel("time (hour)")
+plt.legend(loc='best', fontsize=10)
+plt.title(r'$\propto ln \, KE_{total}$, day %d-%d' % (dstart, dend))
+#
+plt.xlabel("time (hour)")
+plt.ylabel(r'$KE (m^2s^{-2})$')
+#
+plt.tight_layout (pad = 1)
+plt.savefig('./figures/KEln_time_evol.png')
+#plt.close()
 
 
 #####################################################################

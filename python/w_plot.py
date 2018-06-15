@@ -11,34 +11,34 @@ from matplotlib import cm
 
 plt.ion()
 
-timestep = 180 #timestep input in second
-dumpfreq = 10800 # file every 3 hours for dumpfreq 10800
+timestep = 120 #timestep input in second
+dumpfreq = 7200 # file every 3 hours for dumpfreq 10800
 file_dit = dumpfreq/timestep
 day_s = 0
-day_e = 15
+day_e = 5
 startfile = day_s*file_dit #or any integer*file_dit
 endfile = day_e*86400/timestep + 100 #1 day 
-itrs = np.arange(startfile,endfile, file_dit)
-#itrs= [7200]#
+#itrs = np.arange(startfile,endfile, file_dit)
+itrs= [0,60,120]#
 
 XC = mit.rdmds('XC')
 YC = mit.rdmds('YC')
 RC = mit.rdmds('RC')
 
 #v_range = 100
-v_range = np.linspace(-0.005, 0.005, 101, endpoint=True)
-v_ticks = np.linspace(-0.005, 0.005, 11, endpoint=True)
+v_range = np.linspace(-0.08, 0.08, 101, endpoint=True)
+v_ticks = np.linspace(-0.08, 0.08, 11, endpoint=True)
 #levels = np.linspace(-0.02, 0.02,6, endpoint=True)
 levels = np.concatenate((np.linspace(-0.5,0,10,endpoint=False),np.linspace(0.05,0.5,10,endpoint=True)),axis=0)
 
-idepth = 33
+idepth = 24
 si_x = XC.shape[1]
 si_y = YC.shape[0]
 sec_x = int(si_x/2)
 icx =int(si_x/2) 
 sec_y = int(si_y/2)
-plta = 30
-pltb = 150
+plta = 40
+pltb = 290
 xc_dom =XC[plta:pltb, plta:pltb]*1e-3
 yc_dom =YC[plta:pltb, plta:pltb]*1e-3
 
@@ -204,7 +204,7 @@ for it in itrs:
         plt.savefig('./figures/W_0%d.png' % (it))
     else:
         plt.savefig('./figures/W_%d.png' % (it))
-    plt.close()
+#    plt.close()
 
 # Landscape version
 
@@ -263,5 +263,5 @@ for it in itrs:
         plt.savefig('./figures/Wl_0%d.png' % (it))
     else:
         plt.savefig('./figures/Wl_%d.png' % (it))
-    plt.close()
+#    plt.close()
 
