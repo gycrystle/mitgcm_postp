@@ -11,42 +11,42 @@ from matplotlib import cm
 
 plt.ion()
 
-timestep = 120 #timestep input in second
-dumpfreq = 21600 # file every 3 hours for dumpfreq 10800
+timestep = 180 #timestep input in second
+dumpfreq = 10800 # file every 3 hours for dumpfreq 10800
 file_dit = dumpfreq/timestep
 day_s = 0
-day_e = 5
+day_e = 15
 startfile = day_s*file_dit #or any integer*file_dit
 endfile = day_e*86400/timestep + 50 #1 day 
 itrs = np.arange(startfile,endfile, file_dit)
-itrs= [2400,3600,21600]#
+itrs= [60, 120] #2400, 3600, 4800,7200]#
 
 XC = mit.rdmds('XC')
 YC = mit.rdmds('YC')
 RC = mit.rdmds('RC')
 
 #v_range = 100
-v_range_max = 0.2
+v_range_max = 0.1
 v_range = np.linspace(-v_range_max, v_range_max, 101, endpoint=True) #.02 or .12 
 v_ticks = np.linspace(-v_range_max, v_range_max, 11, endpoint=True)
 #levels = np.linspace(-0.02, 0.02,6, endpoint=True)
 levels = np.concatenate((np.linspace(-0.5,0,10,endpoint=False),np.linspace(0.05,0.5,10,endpoint=True)),axis=0)
 
-idepth = 36 #21 14
+idepth = 33 #21 14
 
-plot_depth_ratio = 0.5# 0.7 0.15
+plot_depth_ratio = 0.8# 0.7 0.15
 Rmax = 25*1e3 #25 15.625*1e3
-posext = -520 
-posextx = 400 #440 500
+posext = -250 
+posextx = 500 #440 500
 nx = XC.shape[1]
 ny = YC.shape[0]
 nr = RC.size
 icx = int(nx/2) 
 icy = int(ny/2)
 
-plta = 40
-pltb = 290
-pltdepth = 65
+plta = 30
+pltb = 150
+pltdepth = 99
 xc_dom =XC[plta:pltb, plta:pltb]*1e-3
 yc_dom =YC[plta:pltb, plta:pltb]*1e-3
 nu=0.01 #from kpp=0.01 or Az=4*1e-3
@@ -161,7 +161,7 @@ for it in itrs:
         plt.savefig('./figures/W_section_0%d.png' % (it))
     else:
         plt.savefig('./figures/W_section_%d.png' % (it))
-#    plt.close()
+    plt.close()
     """
 #==============================================================================================
 # plot vertically averaged W and section
@@ -199,7 +199,7 @@ for it in itrs:
     cb.set_label(r'$W \, (mm/s)$', labelpad=-40, y=1.1, rotation=0)
     plt.plot(YC[plta:pltb,icx]*1e-3, np.tile(RC[idepth,0,0], (YC[plta:pltb,icx].size)), ls='dashed', color='0.6')#axvline(x=XC[166,166])
 #    plt.plot(YC[plta:pltb,icx]*1e-3, np.tile(de*3, (YC[plta:pltb,icx].size)), ls='dashed', color='0.6')#axvline(x=XC[166,166])
-    plt.text(580,5,'$z=%d m$' % (RC[idepth]), fontsize=10, color='0.6')
+    plt.text(660,-90,'$z=%d m$' % (RC[idepth]), fontsize=10, color='0.6')
 #    plt.text(580,5,'$3 \delta_E =%d m$' % (de*3), fontsize=10, color='0.6')
     cb.ax.tick_params(labelsize=10)
 #    cb.formatter.set_scientific(True)
@@ -217,15 +217,15 @@ for it in itrs:
     plt.text(posextx,posext,'$W_{extrema}=$[%1.3f, %1.3f] $mm/s$' % (wmin, wmax), fontsize=12)
     plt.tight_layout (pad = 1)
     if it==0:
-        plt.savefig('./figures/W_0000%d.png' % (it))
+        plt.savefig('./figures/W/W_0000%d.png' % (it))
     elif it<100:
-        plt.savefig('./figures/W_000%d.png' % (it))
+        plt.savefig('./figures/W/W_000%d.png' % (it))
     elif it<1000:
-        plt.savefig('./figures/W_00%d.png' % (it))
+        plt.savefig('./figures/W/W_00%d.png' % (it))
     elif it<10000:
-        plt.savefig('./figures/W_0%d.png' % (it))
+        plt.savefig('./figures/W/W_0%d.png' % (it))
     else:
-        plt.savefig('./figures/W_%d.png' % (it))
+        plt.savefig('./figures/W/W_%d.png' % (it))
 #    plt.close()
 
 # Landscape version
@@ -284,14 +284,14 @@ for it in itrs:
     ax1.set_aspect(1)
 
     if it==0:
-        plt.savefig('./figures/Wl_0000%d.png' % (it))
+        plt.savefig('./figures/W/Wl_0000%d.png' % (it))
     elif it<100:
-        plt.savefig('./figures/Wl_000%d.png' % (it))
+        plt.savefig('./figures/W/Wl_000%d.png' % (it))
     elif it<1000:
-        plt.savefig('./figures/Wl_00%d.png' % (it))
+        plt.savefig('./figures/W/Wl_00%d.png' % (it))
     elif it<10000:
-        plt.savefig('./figures/Wl_0%d.png' % (it))
+        plt.savefig('./figures/W/Wl_0%d.png' % (it))
     else:
-        plt.savefig('./figures/Wl_%d.png' % (it))
+        plt.savefig('./figures/W/Wl_%d.png' % (it))
     plt.close()
 

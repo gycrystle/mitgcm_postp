@@ -23,7 +23,7 @@ class MidpointNormalize(colors.Normalize):
 
 dumpfreq = 7200
 ts = 60  # time step = ts*dt (in second); = 7200 = dumpfreq
-endtime = 18000
+endtime = 21600
 nit = int(endtime/ts) # no of time step 
 
 XC = mit.rdmds('XC')
@@ -174,20 +174,38 @@ plt.tight_layout(pad=1)
 plt.savefig('./figures/hovmoller_utilde_day%d_%d.png' % (dstart, dend))
 """
 #### Hovmoller time vs depth
-fig = plt.figure(figsize=(11,5))
+fig = plt.figure(figsize=(9,5))
 #
-plt.contourf(time.squeeze(),RC.squeeze(),Wall[:,sec_y-18,sec_y,:]*1e3,101,norm=MidpointNormalize(midpoint=0.),cmap=cm.seismic)
-plt.colorbar(label='$W \ [mm/s]$', format='%1.3f')
+plt.contourf(time.squeeze(),RC.squeeze(),Wall[:,sec_y-100,sec_y,:]*1e3,101,norm=MidpointNormalize(midpoint=0.),cmap=cm.seismic)
+plt.colorbar(label='$W \ [mm/s]$', format='%1.2f')
 
-CS2 = plt.contour(time.squeeze(),RC.squeeze(),Wall[:,sec_y-18,sec_y,:]*1e3, levels, colors='0.6')
+CS2 = plt.contour(time.squeeze(),RC.squeeze(),Wall[:,sec_y-100,sec_y,:]*1e3, levels, colors='0.6')
 plt.clabel(CS2, fmt='%2.2f', colors='k', fontsize=10)
 
 plt.ylabel("depth (m)")
 plt.xlabel("time (hour)")
-plt.title('Vertical velocity ($W$) at $x=%dkm,\  y=%dkm$, day %d-%d' % (XC[sec_y,sec_y]*1e-3, YC[sec_y-18,sec_y]*1e-3,dstart, dend))
+#plt.title('Vertical velocity ($W$) at $x=%dkm,\  y=%dkm$, day %d-%d' % (XC[sec_y,sec_y]*1e-3, YC[sec_y-20,sec_y]*1e-3,dstart, dend))
+plt.title('Vertical velocity ($W$) 24km south of eddy core, day %d-%d' % (dstart, dend))
 
 plt.tight_layout(pad=1)
-plt.savefig('./figures/hovmoller_Wcore_day%d_%d.png' % (dstart, dend))
+plt.savefig('./figures/hovmoller_Wcoredown_day%d_%d.png' % (dstart, dend))
 
 #
 #####################################################################
+
+fig = plt.figure(figsize=(9,5))
+#
+plt.contourf(time.squeeze(),YC[plta+100:pltb-100,sec_y],Wall[idepth,plta+100:pltb-100,sec_y+20]*1e3,101,norm=MidpointNormalize(midpoint=0.),cmap=cm.seismic)
+plt.colorbar(label='$W \ [mm/s]$', format='%1.2f')
+
+CS2 = plt.contour(time.squeeze(),YC[plta+100:pltb-100,sec_y],Wall[idepth,plta+100:pltb-100,sec_y]*1e3, levels, colors='0.6')
+plt.clabel(CS2, fmt='%2.2f', colors='k', fontsize=10)
+
+plt.ylabel("y (km)")
+plt.xlabel("time (hour)")
+#plt.title('Vertical velocity ($W$) at $x=%dkm,\  y=%dkm$, day %d-%d' % (XC[sec_y,sec_y]*1e-3, YC[sec_y-20,sec_y]*1e-3,dstart, dend))
+plt.title('Vertical velocity ($W$) 24km south of eddy core, day %d-%d' % (dstart, dend))
+
+plt.tight_layout(pad=1)
+plt.savefig('./figures/hovmoller_trapped_day%d_%d.png' % (dstart, dend))
+

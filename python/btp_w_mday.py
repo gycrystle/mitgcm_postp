@@ -11,42 +11,46 @@ from matplotlib import cm
 
 plt.ion()
 
-timestep = 120 #timestep input in second
-dumpfreq = 21600 # file every 3 hours for dumpfreq 10800
+timestep = 180 #timestep input in second
+dumpfreq = 10800 # file every 3 hours for dumpfreq 10800
 file_dit = dumpfreq/timestep
 day_s = 0
-day_e = 5
+day_e = 15
 startfile = day_s*file_dit #or any integer*file_dit
 endfile = day_e*86400/timestep + 50 #1 day 
 itrs = np.arange(startfile,endfile, file_dit)
-itrs= [2400,3600,21600]#
+#itrs= [60,300,4800]#3600, 5400 , 7200] #2400, 3600, 4800,7200]#
+
 
 XC = mit.rdmds('XC')
 YC = mit.rdmds('YC')
 RC = mit.rdmds('RC')
 
 #v_range = 100
-v_range_max = 0.2
+v_range_max = 0.1
 v_range = np.linspace(-v_range_max, v_range_max, 101, endpoint=True) #.02 or .12 
 v_ticks = np.linspace(-v_range_max, v_range_max, 11, endpoint=True)
 #levels = np.linspace(-0.02, 0.02,6, endpoint=True)
-levels = np.concatenate((np.linspace(-0.5,0,10,endpoint=False),np.linspace(0.05,0.5,10,endpoint=True)),axis=0)
+#levels = np.concatenate((np.linspace(-0.5,0,10,endpoint=False),np.linspace(0.05,0.5,10,endpoint=True)),axis=0)
+levels = np.concatenate((np.linspace(-20.0,0,10,endpoint=False),np.linspace(2,20.0,10,endpoint=True)),axis=0)
 
-idepth = 36 #21 14
+idepth = 17 #21 14
 
-plot_depth_ratio = 0.5# 0.7 0.15
+plot_depth_ratio = 0.8# 0.7 0.15
 Rmax = 25*1e3 #25 15.625*1e3
-posext = -520 
-posextx = 400 #440 500
+posext = -320 
+posextx = 500 #440 500
+conv_factor = 86400 # to m/day
+conv_unit = 'm/day'
 nx = XC.shape[1]
 ny = YC.shape[0]
 nr = RC.size
 icx = int(nx/2) 
 icy = int(ny/2)
 
-plta = 40
-pltb = 290
-pltdepth = 65
+plta = 30
+pltb = 150
+pltdepth = 99
 xc_dom =XC[plta:pltb, plta:pltb]*1e-3
 yc_dom =YC[plta:pltb, plta:pltb]*1e-3
 nu=0.01 #from kpp=0.01 or Az=4*1e-3
@@ -73,8 +77,8 @@ for it in itrs:
     W = mit.rdmds('W',it)
 #edit here
     Wmint = np.trapz(W[: ,: ,:],x=-RC.squeeze(), axis = 0)/(-RC[idepth])
-    wmax=np.max(W)*1e3
-    wmin=np.min(W)*1e3
+    wmax=np.max(W)*conv_factor
+    wmin=np.min(W)*conv_factor
     for i in np.arange(0,nx):
         Wdiag[:,i] = W[:,i,i]
 
@@ -161,28 +165,28 @@ for it in itrs:
         plt.savefig('./figures/W_section_0%d.png' % (it))
     else:
         plt.savefig('./figures/W_section_%d.png' % (it))
-#    plt.close()
+    plt.close()
     """
 #==============================================================================================
-# plot vertically averaged W and section
+# plot W and section
 
     fig = plt.figure(figsize=(5.5,9))
     ax1 = plt.subplot(211)
     ax1.set_aspect(1)
-    plt.contourf(xc_dom,yc_dom,W[idepth,plta:pltb,plta:pltb]*1e3,v_range,cmap=cm.seismic)#
-#    plt.contourf(xc_dom,yc_dom,Wmint[plta:pltb,plta:pltb]*1e3,v_range,cmap=cm.seismic)#
+    plt.contourf(xc_dom,yc_dom,W[idepth,plta:pltb,plta:pltb]*conv_factor,v_range,cmap=cm.seismic)#
+#    plt.contourf(xc_dom,yc_dom,Wmint[plta:pltb,plta:pltb]*conv_factor,v_range,cmap=cm.seismic)#
     plt.plot(XC[plta:pltb,icx]*1e-3,YC[plta:pltb,icx]*1e-3, ':')#axvline(x=XC[166,166])
-    cb=plt.colorbar(format='%1.3f', ticks=v_ticks)
-    cb.set_label(r'$W \, (mm/s)$', labelpad=-40, y=1.1, rotation=0)
+    cb=plt.colorbar(format='%1.1f', ticks=v_ticks)
+    cb.set_label(r'$W \, $['+conv_unit+']', labelpad=-40, y=1.1, rotation=0)
     cb.ax.tick_params(labelsize=10)
-    CS2 = plt.contour(xc_dom,yc_dom,W[idepth,plta:pltb,plta:pltb]*1e3, levels, colors='0.6')
-#    CS2 = plt.contour(xc_dom,yc_dom,Wmint[plta:pltb,plta:pltb]*1e3, levels, colors='0.6')
-    plt.clabel(CS2, fmt='%2.2f', colors='k', fontsize=10)
+    CS2 = plt.contour(xc_dom,yc_dom,W[idepth,plta:pltb,plta:pltb]*conv_factor, levels, colors='0.6')
+#    CS2 = plt.contour(xc_dom,yc_dom,Wmint[plta:pltb,plta:pltb]*conv_factor, levels, colors='0.6')
+    plt.clabel(CS2, fmt='%2.1f', colors='k', fontsize=10)
     rmax1 = plt.Circle((XC[icy,icx]*1e-3, YC[icy,icx]*1e-3), Rmax*1e-3, color='r',ls=':', fill=False)
     ax1.add_artist(rmax1)
     rmax2 = plt.Circle((XC[icy,icx]*1e-3, YC[icy,icx]*1e-3), Rmax*2e-3, color='r',ls=':', fill=False)
     ax1.add_artist(rmax2)
-#    plt.text(470,470,'$W_{extrema}=$[%1.3f, %1.3f] $mm/s$' % (wmin, wmax), fontsize=10)
+#    plt.text(470,470,'$W_{extrema}=$[%1.3f, %1.3f]' + conv_unit % (wmin, wmax), fontsize=10)
     #plt.text(375,375,'$W_{min}=$ %1.3f $mm/s$' % (wmin))
 
     plt.xlabel("x (km)", fontsize=10)
@@ -194,17 +198,17 @@ for it in itrs:
 #
     ax2 = plt.subplot(212, sharex=ax1)
     ax2.set_aspect(plot_depth_ratio)
-    plt.contourf(YC[plta:pltb,icx]*1e-3,RC[:pltdepth].squeeze(),W[:pltdepth,plta:pltb,icx]*1e3,v_range,cmap=cm.seismic)
-    cb=plt.colorbar(format='%.3f', ticks=v_ticks)
-    cb.set_label(r'$W \, (mm/s)$', labelpad=-40, y=1.1, rotation=0)
+    plt.contourf(YC[plta:pltb,icx]*1e-3,RC[:pltdepth].squeeze(),W[:pltdepth,plta:pltb,icx]*conv_factor,v_range,cmap=cm.seismic)
+    cb=plt.colorbar(format='%.1f', ticks=v_ticks)
+    cb.set_label(r'$W \, $['+conv_unit+']', labelpad=-40, y=1.1, rotation=0)
     plt.plot(YC[plta:pltb,icx]*1e-3, np.tile(RC[idepth,0,0], (YC[plta:pltb,icx].size)), ls='dashed', color='0.6')#axvline(x=XC[166,166])
 #    plt.plot(YC[plta:pltb,icx]*1e-3, np.tile(de*3, (YC[plta:pltb,icx].size)), ls='dashed', color='0.6')#axvline(x=XC[166,166])
-    plt.text(580,5,'$z=%d m$' % (RC[idepth]), fontsize=10, color='0.6')
+    plt.text(670,-70,'$z=%d m$' % (RC[idepth]), fontsize=10, color='0.6')
 #    plt.text(580,5,'$3 \delta_E =%d m$' % (de*3), fontsize=10, color='0.6')
     cb.ax.tick_params(labelsize=10)
 #    cb.formatter.set_scientific(True)
-    CS1 = plt.contour(YC[plta:pltb,int(icx/2)]*1e-3,RC[:pltdepth].squeeze(),W[:pltdepth,plta:pltb,int(icx/2)]*1e3, levels, colors='0.6')
-    plt.clabel(CS1, fmt='%2.2f', colors='k', fontsize=10)
+    CS1 = plt.contour(YC[plta:pltb,int(icx/2)]*1e-3,RC[:pltdepth].squeeze(),W[:pltdepth,plta:pltb,icx]*conv_factor, levels, colors='0.6')
+    plt.clabel(CS1, fmt='%2.1f', colors='k', fontsize=10)
 
 #    plt.text(375,-1250,'$W_{max}=$ %1.3f $mm/s$' % (wmax))
 #    plt.text(375,-1350,'$W_{min}=$ %1.3f $mm/s$' % (wmin))
@@ -214,19 +218,19 @@ for it in itrs:
 #    plt.title('Vertical velocity $W_{num}$ at $x=%dkm$, timestep %d hr' % (XC[int(si_x/2),int(si_x/2)]*1e-3,int(it*timestep/3600)), fontsize=11)
     #
     plt.title('$W_{num}$ section, timestep %d hr' % (int(it*timestep/3600)), fontsize=11)
-    plt.text(posextx,posext,'$W_{extrema}=$[%1.3f, %1.3f] $mm/s$' % (wmin, wmax), fontsize=12)
+    plt.text(posextx,posext,'$W_{extrema}=$[%1.1f, %1.1f] $m/day$' % (wmin, wmax), fontsize=12)
     plt.tight_layout (pad = 1)
     if it==0:
-        plt.savefig('./figures/W_0000%d.png' % (it))
+        plt.savefig('./figures/Wmday/W_0000%d.png' % (it))
     elif it<100:
-        plt.savefig('./figures/W_000%d.png' % (it))
+        plt.savefig('./figures/Wmday/W_000%d.png' % (it))
     elif it<1000:
-        plt.savefig('./figures/W_00%d.png' % (it))
+        plt.savefig('./figures/Wmday/W_00%d.png' % (it))
     elif it<10000:
-        plt.savefig('./figures/W_0%d.png' % (it))
+        plt.savefig('./figures/Wmday/W_0%d.png' % (it))
     else:
-        plt.savefig('./figures/W_%d.png' % (it))
-#    plt.close()
+        plt.savefig('./figures/Wmday/W_%d.png' % (it))
+    plt.close()
 
 # Landscape version
 
@@ -234,12 +238,12 @@ for it in itrs:
     ax1 = plt.subplot(121)
     #ax1 = fig.add_subplot(2, 1, 1)
     ax1.set_aspect(1)
-    plt.contourf(xc_dom,yc_dom,W[idepth,plta:pltb,plta:pltb]*1e3,v_range,cmap=cm.seismic)#
-#    plt.contourf(xc_dom,yc_dom,Wmint[plta:pltb,plta:pltb]*1e3,v_range,cmap=cm.seismic)#
+    plt.contourf(xc_dom,yc_dom,W[idepth,plta:pltb,plta:pltb]*conv_factor,v_range,cmap=cm.seismic)#
+#    plt.contourf(xc_dom,yc_dom,Wmint[plta:pltb,plta:pltb]*conv_factor,v_range,cmap=cm.seismic)#
     plt.plot(XC[icy, plta:pltb]*1e-3,YC[plta:pltb,icx]*1e-3, ':')#axvline(x=XC[166,166])
-    cb=plt.colorbar(format='%1.3f', ticks=v_ticks)
-    cb.set_label(r'$W \, (mm/s)$', labelpad=-40, y=1.1, rotation=0)
-    CS2 = plt.contour(xc_dom,yc_dom,W[idepth,plta:pltb,plta:pltb]*1e3, levels, colors='0.6')
+    cb=plt.colorbar(format='%1.2f', ticks=v_ticks)
+    cb.set_label(r'$W \, (m/day)$', labelpad=-40, y=1.1, rotation=0)
+    CS2 = plt.contour(xc_dom,yc_dom,W[idepth,plta:pltb,plta:pltb]*conv_factor, levels, colors='0.6')
 #    CS2 = plt.contour(xc_dom,yc_dom,Wmint[plta:pltb,plta:pltb]*1e3, levels, colors='0.6')
     plt.clabel(CS2, fmt='%2.2f', colors='k', fontsize=10)
     rmax22 = plt.Circle((XC[icy,icx]*1e-3, YC[icy,icx]*1e-3), Rmax*1e-3, color='r',ls=':', fill=False)
@@ -249,7 +253,7 @@ for it in itrs:
 
     ax1.set_aspect(1)
 
-#    plt.text(470,470,'$W_{extrema}=$[%1.3f, %1.3f] $mm/s$' % (wmin, wmax), fontsize=10)
+#    plt.text(470,470,'$W_{extrema}=$[%1.3f, %1.3f] $m/day$' % (wmin, wmax), fontsize=10)
     #plt.text(375,375,'$W_{min}=$ %1.3f $mm/s$' % (wmin))
 
     plt.xlabel("x (km)")
@@ -264,14 +268,14 @@ for it in itrs:
 
     #ax2 = fig.add_subplot(2, 1, 2)
     ax2.set_aspect(plot_depth_ratio+0.2) #0.7 or 0.32
-    plt.contourf(XY[plta:pltb]*1e-3,RC[:pltdepth].squeeze(),Wdiag[:pltdepth,plta:pltb]*1e3,v_range,cmap=cm.seismic)
-    cb=plt.colorbar(format='%.3f', ticks=v_ticks)
+    plt.contourf(XY[plta:pltb]*1e-3,RC[:pltdepth].squeeze(),Wdiag[:pltdepth,plta:pltb]*conv_factor,v_range,cmap=cm.seismic)
+    cb=plt.colorbar(format='%.2f', ticks=v_ticks)
     cb.set_label(r'$W \, (mm/s)$', labelpad=-40, y=1.1, rotation=0)
 #    plt.plot(XY[plta:pltb]*1e-3, np.tile(de*3, (YC[plta:pltb,icx].size)), ls='dashed', color='0.6')#axvline(x=XC[166,166])
     plt.plot(XY[plta:pltb]*1e-3, np.tile(RC[idepth,0,0], (YC[plta:pltb,icx].size)), ls='dashed', color='0.6')#axvline(x=XC[166,166])
 #    plt.text(580,-50,'$3 \delta_E =%d m$' % (de*3), fontsize=10, color='0.6')
     plt.text(580,-50,'$z=%d m$' % (RC[idepth]), fontsize=10, color='0.6')
-    CS1 = plt.contour(XY[plta:pltb]*1e-3,RC[:pltdepth].squeeze(),Wdiag[:pltdepth,plta:pltb]*1e3, levels, colors='0.6')
+    CS1 = plt.contour(XY[plta:pltb]*1e-3,RC[:pltdepth].squeeze(),Wdiag[:pltdepth,plta:pltb]*conv_factor, levels, colors='0.6')
     plt.clabel(CS1, fmt='%2.2f', colors='k', fontsize=10)
 
     plt.xlabel("xy (km)")
@@ -284,14 +288,14 @@ for it in itrs:
     ax1.set_aspect(1)
 
     if it==0:
-        plt.savefig('./figures/Wl_0000%d.png' % (it))
+        plt.savefig('./figures/Wmday/Wl_0000%d.png' % (it))
     elif it<100:
-        plt.savefig('./figures/Wl_000%d.png' % (it))
+        plt.savefig('./figures/Wmday/Wl_000%d.png' % (it))
     elif it<1000:
-        plt.savefig('./figures/Wl_00%d.png' % (it))
+        plt.savefig('./figures/Wmday/Wl_00%d.png' % (it))
     elif it<10000:
-        plt.savefig('./figures/Wl_0%d.png' % (it))
+        plt.savefig('./figures/Wmday/Wl_0%d.png' % (it))
     else:
-        plt.savefig('./figures/Wl_%d.png' % (it))
+        plt.savefig('./figures/Wmday/Wl_%d.png' % (it))
     plt.close()
 

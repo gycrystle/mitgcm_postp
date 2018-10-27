@@ -8,7 +8,7 @@ from MITgcmutils import rdmds
 import matplotlib.pyplot as plt
 from matplotlib import cm
 
-#plt.ion()
+plt.ion()
 
 timestep = 120 #timestep input in second
 dumpfreq = 7200 # file every 3 hours for dumpfreq 10800
@@ -18,7 +18,7 @@ day_e = 15
 startfile = day_s*file_dit #or any integer*file_dit
 endfile = day_e*86400/timestep + 100 #1 day 
 itrs = np.arange(startfile,endfile, file_dit)
-#itrs= [10800]#
+itrs= [3600]#
 
 XC = mit.rdmds('XC')
 YC = mit.rdmds('YC')
@@ -32,6 +32,8 @@ levels = np.concatenate((np.linspace(-0.5,0,10,endpoint=False),np.linspace(0.05,
 
 idepth = 24
 si_x = XC.shape[1]
+nx = si_x
+nr = RC.size
 si_y = YC.shape[0]
 sec_x = int(si_x/2)
 sec_y = int(si_y/2)
@@ -189,5 +191,5 @@ for it in itrs:
         plt.savefig('./figures/Wd_0%d.png' % (it))
     else:
         plt.savefig('./figures/Wd_%d.png' % (it))
-    plt.close()
+#    plt.close()
 
