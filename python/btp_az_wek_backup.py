@@ -14,7 +14,7 @@ from scipy import interpolate
 from matplotlib import cm
 import matplotlib.colors as colors
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from compute_we_stern import we_stern
+
 plt.ion()
 
 class MidpointNormalize(colors.Normalize):
@@ -175,15 +175,15 @@ dxV_c = np.zeros((ny,nx));
 
 
 zeta = np.zeros((ny,nx));
-#zeta_intx = np.zeros((ny,nx));
-#zeta_inty = np.zeros((ny,nx));
+zeta_intx = np.zeros((ny,nx));
+zeta_inty = np.zeros((ny,nx));
 
-#termx = np.zeros((ny,nx));
-#termy = np.zeros((ny,nx));
+termx = np.zeros((ny,nx));
+termy = np.zeros((ny,nx));
 #
-#dytermx = np.zeros((ny,nx));
-#dxtermy = np.zeros((ny,nx));
-#W_stern = np.zeros((ny,nx));
+dytermx = np.zeros((ny,nx));
+dxtermy = np.zeros((ny,nx));
+W_stern = np.zeros((ny,nx));
 
 Vort_all = np.zeros((nit,ny,nx))
 Vort_da = np.zeros((nitt,ny,nx));
@@ -312,8 +312,6 @@ for it in itrst:
     tauy = mit.rdmds('diagTAUY',(iters2[it]))
 #    Vort_da=np.nanmean(Vort_all[(it-itrsd[0]-8):(it-itrs[0]),:,:], axis=0)
 #
-    W_stern = we_stern(Vort_da[it,:,:],taux,tauy,dXC,dYC,f0,rho0)
-    """
     for i in range(1,nx-1):
         for j in range(1,ny-1):
             zeta_intx[j,i] =(Vort_da[it,j,i]+Vort_da[it,j+1,i])/2 #vorticity @ u point
@@ -327,7 +325,6 @@ for it in itrst:
             dytermx[(j+1),i] = (termx[j+1,i]-termx[j,i])/dYC[j+1,i];
             dxtermy[j,(i+1)] = (termy[j,i+1]-termy[j,i])/dXC[j,i+1];
             W_stern[(j+1),(i+1)] = (dxtermy[j+1,i+1]-dytermx[j+1,i+1])/rho0;
-    """
 #
 #    W_sternall[int((it-itrs[0])/itpd),:,:]= W_stern; #u-point u_wt
     W_sternall[it,:,:]= W_stern; #u-point u_wt
@@ -361,7 +358,7 @@ for it in itrst:
     thetaC = np.arctan2(YC-c[1]*1e3, XC-c[0]*1e3)
     radC = np.hypot(XC-c[0]*1e3,YC-c[1]*1e3)
     """
-# Compute Tangential and Angular velocity
+#       Compute Tangential and Angular velocity
     U_theta = Utheta_da[it] #Vt_c*np.cos(thetaC) - Ut_c*np.sin(thetaC)
 # Compute azimuthal average
     [r_av, Utheta_av] = radial_prof(U_theta[99,:,:], radC)
@@ -369,7 +366,7 @@ for it in itrst:
     drOmega_av = Omega_av*0.0
     for j in range(1,r_av.size):
         drOmega_av[j] = (Omega_av[j]-Omega_av[j-1])/(r_av[j]-r_av[j-1])#/np.diff(r_av)
-# projecting back to grid
+#projecting back to grid
     U_theta_av=U_theta[99,:,:]*0.0
     dr_Omega_av = U_theta[99,:,:]*0.0
     for ir in range(0,r_av.size):
@@ -386,7 +383,7 @@ for it in itrst:
         Vort_c[:,x] = np.interp(YC[:,x],YG[:,x],Vort_c[:,x]) #verify if V points = YUg
     Vort_cnd = Vort_c/(0.26/(25*1e3))
 
-# Compute Ekman transport Wenegrat & Thomas
+#   Compute Ekman transport Wenegrat & Thomas
     dim_factor = np.max(taux)/(rho0*f0)
     Mx_WT = dim_factor*Ro*(Vort_cnd-2*Omega)*np.sin(thetaC)*np.cos(thetaC)/((1+Ro*2*Omega)*(1+Ro*Vort_cnd)-Ro**2*Omega**2)
     My_WT = -dim_factor*(1+Ro*Omega+Ro*2*Omega*np.sin(thetaC)**2+Ro*Vort_cnd*np.cos(thetaC)**2)/((1+Ro*2*Omega)*(1+Ro*Vort_cnd)-Ro**2*Omega**2)
@@ -397,7 +394,7 @@ for it in itrst:
     Mx_WTall[it,:,:]=Mx_WT # @cell center
     My_WTall[it,:,:]=My_WT # @cell center
 # -------------------------------------------------------------------
-# Compute correction term by bruno
+#       Compute correction term by bruno
     """
     for i in range(1,nx):
         for j in range(1,ny):
@@ -487,25 +484,19 @@ time = (itrs)*dumpfreq/3600
 maxdepthi = np.where(W_ta==np.max(W_ta))
 maxdepth = maxdepthi[0][0]
 maxdepth = 17
-def plot_circle(r):
-    x = np.linspace(-r,r,1000)
-    y = np.sqrt(-x**2+r**2)
-    plt.plot(x, y,'r', ls=':')
-    plt.plot(x,-y,'r', ls=':')
 #
-def subplot_We(W,title):
-    plt.contourf(xc_dom,yc_dom,W[plta:pltb,plta:pltb]*conv_factor,we_range,cmap=cm.seismic)#
+def subplot_plan(W,title):
+    plt.contourf(xc_dom,yc_dom,W[maxdepth,plta:pltb,plta:pltb]*conv_factor,we_range,cmap=cm.seismic)#
     cb=plt.colorbar(ticks=we_ticks, format='%1.1f')
     cb.set_label(r'$W \, (m/day)$', labelpad=-40, y=1.1, rotation=0)
-    plot_circle(Rmax*1e-3)
-    plot_circle(Rmax*2e-3)
     rmax1 = plt.Circle((XC[icy,icx]*1e-3, YC[icy,icx]*1e-3), Rmax*1e-3, color='r',ls=':', fill=False)
-#    ax1.add_artist(rmax1)
+    ax1.add_artist(rmax1)
     rmax12 = plt.Circle((XC[icy,icx]*1e-3, YC[icy,icx]*1e-3), Rmax*2e-3, color='r',ls=':', fill=False)
-#    ax1.add_artist(rmax12)
+    ax1.add_artist(rmax12)
     #CS2 = plt.contour(xc_dom,yc_dom,Wmint[plta:pltb,plta:pltb]*1e3, levels, colors='0.6')
     #plt.clabel(CS2, fmt='%2.2f', colors='k', fontsize=10)
-    plt.text(posext,posext,'$W_{extrema}=$ [%1.1f, %1.1f] $m/day$' % (np.min(W)*conv_factor,np.max(W)*conv_factor), fontsize=10)
+    ax1.set_aspect(1)
+    plt.text(posext,posext,'$W_{extrema}=$ [%1.1f, %1.1f] $m/day$' % (np.min(W[maxdepth,:,:])*conv_factor,np.max(W[maxdepth,:,:])*conv_factor), fontsize=10)
     #plt.xlabel("x (km)")
     plt.ylabel("y (km)")
     plt.title(title,fontsize=11)
@@ -517,48 +508,153 @@ fig = plt.figure(figsize=(15,8))
 fig.suptitle('Ekman pumping, day %d to %d' % (day_s, day_e),fontsize=12)
 #
 ax1 = plt.subplot(231)
-title1=r'$\overline{W_{e}}=\overline{\partial_x \int \, U_e + \partial_y \int \, V_e}$'
-subplot_We(W_ta[maxdepth,:,:],title1)
+title1="r'$\overline{W_{e}}=\overline{\partial_x \int \, U_e + \partial_y \int \, V_e}$'"
+subplot_plan(W_ta,title1)
+"""
+plt.contourf(xc_dom,yc_dom,W_ta[maxdepth,plta:pltb,plta:pltb]*conv_factor,we_range,cmap=cm.seismic)#
+cb=plt.colorbar(ticks=we_ticks, format='%1.1f')
+cb.set_label(r'$W \, (m/day)$', labelpad=-40, y=1.1, rotation=0)
+rmax1 = plt.Circle((XC[icy,icx]*1e-3, YC[icy,icx]*1e-3), Rmax*1e-3, color='r',ls=':', fill=False)
+ax1.add_artist(rmax1)
+rmax12 = plt.Circle((XC[icy,icx]*1e-3, YC[icy,icx]*1e-3), Rmax*2e-3, color='r',ls=':', fill=False)
+ax1.add_artist(rmax12)
+#CS2 = plt.contour(xc_dom,yc_dom,Wmint[plta:pltb,plta:pltb]*1e3, levels, colors='0.6')
+#plt.clabel(CS2, fmt='%2.2f', colors='k', fontsize=10)
 ax1.set_aspect(1)
-#ax1.add_artist(rmax1)
-#ax1.add_artist(rmax12)
-#
+plt.text(posext,posext,'$W_{extrema}=$ [%1.1f, %1.1f] $m/day$' % (np.min(W_ta[maxdepth,:,:])*conv_factor,np.max(W_ta[maxdepth,:,:])*conv_factor), fontsize=10)
+#plt.text(posext,posext,'$W_{extrema}=$ [%1.3f, %1.3f] $mm/s$' % (np.min(W_Bm)*1e3,np.max(W_Bm)*1e3), fontsize=10)
+#plt.xlabel("x (km)")
+plt.ylabel("y (km)")
+#plt.title('Vertically averaged W at $z[0, %d]m$, timestep %d hr' % (RC[idepth],int(it*timestep/3600)),fontsize=11)
+plt.title(r'Time averaged, $\overline{W}$ at $z=%d$' % (RC[maxdepth]),fontsize=11)
+"""
+# ===============================================
 ax2 = plt.subplot(232, sharex=ax1)
-title2=r'$\overline{W_{e}}=\overline{\partial_x \int \, U_e + \partial_y \int \, V_e}$'
-subplot_We(W_ekman,title2)
-#ax2.add_artist(rmax1)
-#ax2.add_artist(rmax12)
+title2="r'$\overline{W_{e}}=\overline{\partial_x \int \, U_e + \partial_y \int \, V_e}$'"
+subplot_plan(W_ekman,title2)
+"""
+plt.contourf(xc_dom,yc_dom,W_ekman[plta:pltb,plta:pltb]*conv_factor,we_range,cmap=cm.seismic)#
+cb=plt.colorbar(ticks=we_ticks, format='%1.1f')
+cb.set_label(r'$W \, (m/day)$', labelpad=-40, y=1.1, rotation=0)
+rmax1 = plt.Circle((XC[icy,icx]*1e-3, YC[icy,icx]*1e-3), Rmax*1e-3, color='r',ls=':', fill=False)
+ax2.add_artist(rmax1)
+rmax12 = plt.Circle((XC[icy,icx]*1e-3, YC[icy,icx]*1e-3), Rmax*2e-3, color='r',ls=':', fill=False)
+ax2.add_artist(rmax12)
+#CS2 = plt.contour(xc_dom,yc_dom,Wmint[plta:pltb,plta:pltb]*1e3, levels, colors='0.6')
+#plt.clabel(CS2, fmt='%2.2f', colors='k', fontsize=10)
+ax2.set_aspect(1)
+plt.text(posext,posext,'$W_{extrema}=$ [%1.1f, %1.1f] $m/day$' % (np.min(W_ekman)*conv_factor,np.max(W_ekman)*conv_factor), fontsize=10)
+#plt.xlabel("x (km)")
+#plt.ylabel("y (km)")
+#plt.title('Vertically averaged W at $z[0, %d]m$, timestep %d hr' % (RC[idepth],int(it*timestep/3600)),fontsize=11)
+plt.title(r'$\overline{W_{e}}=\overline{\partial_x \int \, U_e + \partial_y \int \, V_e}$',fontsize=11)
+"""
+# ===============================================
 #
 ax3 = plt.subplot(233, sharex=ax1)
-title3=r'$\overline{W_{stern}}=\overline{\frac{1}{\rho_0} \nabla \times \left[\frac{\tau}{f+\zeta}\right]}$'
-subplot_We(Wm_stern,title3)
-#ax3.add_artist(rmax1)
-#ax3.add_artist(rmax12)
+title3="r'$\overline{W_{stern}}=\overline{\frac{1}{\rho_0} \nabla \times \left[\frac{\tau}{f+\zeta}\right]}$'"
+subplot_plan(Wm_stern,title3)
+ax3.set_aspect(1)
+"""
+im=plt.contourf(xc_dom,yc_dom,Wm_stern[plta:pltb,plta:pltb]*conv_factor,we_range,cmap=cm.seismic)#
+#divider = make_axes_locatable(plt.gca())
+#cax = divider.append_axes("right", "5%", pad="3%")
+#cb=plt.colorbar(im,ticks=we_ticks, format='%1.2f', cax=cax)
+
+cb=plt.colorbar(ticks=we_ticks, format='%1.1f')
+cb.set_label(r'$W \, (m/day)$', labelpad=-40, y=1.1, rotation=0)
+rmax2 = plt.Circle((XC[icy,icx]*1e-3, YC[icy,icx]*1e-3), Rmax*1e-3, color='r',ls=':', fill=False)
+ax3.add_artist(rmax2)
+rmax22 = plt.Circle((XC[icy,icx]*1e-3, YC[icy,icx]*1e-3), Rmax*2e-3, color='r',ls=':', fill=False)
+ax3.add_artist(rmax22)
+#CS1 = plt.contour(YC[plta:pltb,int(si_x/2)]*1e-3,RC.squeeze(),W[:,plta:pltb,int(si_x/2)]*1e3, levels, colors='0.6')
+#plt.clabel(CS1, fmt='%2.2f', colors='k', fontsize=10)
+plt.text(posext,posext,'$W_{extrema}=$ [%1.1f, %1.1f] $m/day$' % (np.min(Wm_stern)*conv_factor,np.max(Wm_stern)*conv_factor), fontsize=10)
+#plt.title('Vertical velocity $W_{num}$ at $x=%dkm$, timestep %d hr' % (XC[int(si_x/2),int(si_x/2)]*1e-3,int(it*timestep/3600)), fontsize=11)
+plt.title(r'$\overline{W_{stern}}=\overline{\frac{1}{\rho_0} \nabla \times \left[\frac{\tau}{f+\zeta}\right]}$', fontsize=14)
+"""
+# ================================================
 #
 ax4 = plt.subplot(234, sharex=ax1)
 title4 = r'$\overline{W_{wt}}$, Wenegrat&Thomas'
-subplot_We(W_WT,title4)
-#ax4.add_artist(rmax1)
-#ax4.add_artist(rmax12)
+subplot_plan(W_WT,title4)
+"""
+plt.contourf(xc_dom,yc_dom,W_WT[plta:pltb,plta:pltb]*conv_factor,we_range,cmap=cm.seismic)#
+#plt.contourf(xc_dom,yc_dom,W_Bm[plta:pltb,plta:pltb]*1e3,we_range,cmap=cm.seismic)#
+cb=plt.colorbar(ticks=we_ticks, format='%1.1f')
+cb.set_label(r'$W \, (m/day)$', labelpad=-40, y=1.1, rotation=0)
+rmax1 = plt.Circle((XC[icy,icx]*1e-3, YC[icy,icx]*1e-3), Rmax*1e-3, color='r',ls=':', fill=False)
+ax4.add_artist(rmax1)
+rmax12 = plt.Circle((XC[icy,icx]*1e-3, YC[icy,icx]*1e-3), Rmax*2e-3, color='r',ls=':', fill=False)
+ax4.add_artist(rmax12)
+#CS2 = plt.contour(xc_dom,yc_dom,Wmint[plta:pltb,plta:pltb]*1e3, levels, colors='0.6')
+#plt.clabel(CS2, fmt='%2.2f', colors='k', fontsize=10)
+ax4.set_aspect(1)
+plt.text(posext,posext,'$W_{extrema}=$ [%1.1f, %1.1f] $m/day$' % (np.nanmin(W_WT)*conv_factor,np.nanmax(W_WT)*conv_factor), fontsize=10)
+#plt.text(posext,posext,'$W_{extrema}=$ [%1.3f, %1.3f] $mm/s$' % (np.min(W_Bm)*1e3,np.max(W_Bm)*1e3), fontsize=10)
+plt.xlabel("x (km)")
+plt.ylabel("y (km)")
+#    plt.title('Vertically averaged W at $z[0, %d]m$, timestep %d hr' % (RC[idepth],int(it*timestep/3600)),fontsize=11)
+plt.title(r'$\overline{W_{wt}}$, Wenegrat&Thomas',fontsize=10)
+"""
+# ===============================================
+# ================================================
 #
 ax5 = plt.subplot(235, sharex=ax1)
 title5 = r'$\overline{W_{b}}=W_{stern}+ \frac{\partial_r \Omega}{\rho (f+\zeta )^2}$, Bruno calculation'
-subplot_We(We_bd,title5)
-#ax5.add_artist(rmax1)
-#ax5.add_artist(rmax12)
+subplot_plan(We_bd,title5)
+"""
+plt.contourf(xc_dom,yc_dom,We_bd[plta:pltb,plta:pltb]*conv_factor,we_range,cmap=cm.seismic)#
+#plt.contourf(xc_dom,yc_dom,W_Bm[plta:pltb,plta:pltb]*1e3,we_range,cmap=cm.seismic)#
+cb=plt.colorbar(ticks=we_ticks, format='%1.1f')
+cb.set_label(r'$W \, (m/day)$', labelpad=-40, y=1.1, rotation=0)
+rmax1 = plt.Circle((XC[icy,icx]*1e-3, YC[icy,icx]*1e-3), Rmax*1e-3, color='r',ls=':', fill=False)
+ax5.add_artist(rmax1)
+rmax12 = plt.Circle((XC[icy,icx]*1e-3, YC[icy,icx]*1e-3), Rmax*2e-3, color='r',ls=':', fill=False)
+ax5.add_artist(rmax12)
+#CS2 = plt.contour(xc_dom,yc_dom,Wmint[plta:pltb,plta:pltb]*1e3, levels, colors='0.6')
+#plt.clabel(CS2, fmt='%2.2f', colors='k', fontsize=10)
+ax5.set_aspect(1)
+plt.text(posext,posext,'$W_{extrema}=$ [%1.1f, %1.1f] $m/day$' % (np.nanmin(We_bd)*conv_factor,np.nanmax(We_bd)*conv_factor), fontsize=10)
+#plt.text(posext,posext,'$W_{extrema}=$ [%1.3f, %1.3f] $mm/s$' % (np.min(W_Bm)*1e3,np.max(W_Bm)*1e3), fontsize=10)
+plt.xlabel("x (km)")
+plt.ylabel("y (km)")
+#    plt.title('Vertically averaged W at $z[0, %d]m$, timestep %d hr' % (RC[idepth],int(it*timestep/3600)),fontsize=11)
+
+plt.title(r'$\overline{W_{b}}=W_{stern}+ \frac{\partial_r \Omega}{\rho (f+\zeta )^2}$, Bruno calculation',fontsize=10)
+"""
+# ===============================================
+
 #
 ax6 = plt.subplot(236, sharex=ax1)
 title6 = r'$\overline{W_{a}}=W_{stern}+ \frac{\partial_r \Omega}{\rho (f+\zeta ) (f+2\Omega )}$, Alex correction'
-subplot_We(We_as, title6)
-#ax6.add_artist(rmax1)
-#ax6.add_artist(rmax12)
+subplot_plan(We_as, title6)
+# ================================================
 #
+"""
+plt.contourf(xc_dom,yc_dom,We_as[plta:pltb,plta:pltb]*conv_factor,we_range,cmap=cm.seismic)#
+#plt.contourf(xc_dom,yc_dom,W_Bm[plta:pltb,plta:pltb]*1e3,we_range,cmap=cm.seismic)#
+cb=plt.colorbar(ticks=we_ticks, format='%1.1f')
+cb.set_label(r'$W \, (m/day)$', labelpad=-40, y=1.1, rotation=0)
+rmax1 = plt.Circle((XC[icy,icx]*1e-3, YC[icy,icx]*1e-3), Rmax*1e-3, color='r',ls=':', fill=False)
+ax5.add_artist(rmax1)
+rmax12 = plt.Circle((XC[icy,icx]*1e-3, YC[icy,icx]*1e-3), Rmax*2e-3, color='r',ls=':', fill=False)
+ax5.add_artist(rmax12)
+#CS2 = plt.contour(xc_dom,yc_dom,Wmint[plta:pltb,plta:pltb]*1e3, levels, colors='0.6')
+#plt.clabel(CS2, fmt='%2.2f', colors='k', fontsize=10)
+ax5.set_aspect(1)
+plt.text(posext,posext,'$W_{extrema}=$ [%1.1f, %1.1f] $m/day$' % (np.nanmin(We_as)*conv_factor,np.nanmax(We_as)*conv_factor), fontsize=10)
+#plt.text(posext,posext,'$W_{extrema}=$ [%1.3f, %1.3f] $mm/s$' % (np.min(W_Bm)*1e3,np.max(W_Bm)*1e3), fontsize=10)
+plt.xlabel("x (km)")
+plt.ylabel("y (km)")
+#    plt.title('Vertically averaged W at $z[0, %d]m$, timestep %d hr' % (RC[idepth],int(it*timestep/3600)),fontsize=11)
+plt.title(r'$\overline{W_{a}}=W_{stern}+ \frac{\partial_r \Omega}{\rho (f+\zeta ) (f+2\Omega )}$, Alex correction',fontsize=10)
+"""
+# ===============================================
 plt.savefig('./figures/W_ek_mday_day%d-%d.png' % (day_s, day_e))
-#
-## ============== Plot Ekman pumping cross =================================
-#
+
 fig = plt.figure(figsize=(5,4))
-#
+#ax5.set_aspect(1)
 plt.plot(yc_dom[:,icx],W_ta[maxdepth,plta:pltb,icx]*conv_factor,label=r'$\overline{W}$')# label='Time averaged')
 plt.plot(yc_dom[:,icx],W_ekman[plta:pltb,icx]*conv_factor, label=r'$\overline{W_{e}}$') #r'$\overline{\partial_x \int \, U_e + \partial_y \int \, V_e}$')
 plt.plot(yc_dom[:,icx],Wm_stern[plta:pltb,icx]*conv_factor, label=r'$\overline{W_{stern}}$')
@@ -574,42 +670,46 @@ plt.ylabel("Vertical velocity (m/day)")
 #
 #plt.tight_layout(pad=1)
 plt.savefig('./figures/W_ek_compare_day%d-%d.png' % (day_s, day_e))
-#
-## ================= PLOT Ekman Transport ====================
-#
-def subplot_Me(Me, title):
-    plt.contourf(xc_dom,yc_dom,Me[plta:pltb, plta:pltb],101,norm=MidpointNormalize(midpoint=Me[plta+1,plta+1]),cmap=cm.seismic)
-    cb = plt.colorbar(format='%1.3f')
-    cb.set_label(r'$M_e \, (m^2/s)$', labelpad=-40, y=1.1, rotation=0)
-    plot_circle(Rmax*1e-3)
-    plot_circle(Rmax*2e-3)
-    rmax1 = plt.Circle((XC[icy,icx]*1e-3, YC[icy,icx]*1e-3), Rmax*1e-3, color='r',ls=':', fill=False)
-    rmax11 = plt.Circle((XC[icy,icx]*1e-3, YC[icy,icx]*1e-3), Rmax*2e-3, color='r',ls=':', fill=False)
-    #CS2 = plt.contour(xc_dom,yc_dom,Wmint[plta:pltb,plta:pltb]*1e3, levels, colors='0.6')
-    #plt.clabel(CS2, fmt='%2.2f', colors='k', fontsize=10)
-    #plt.text(480,480,'$W_{extrema}=$ [%1.3f, %1.3f] $mm/s$' % (np.min(Wm_wt)*1e3,np.max(Wm_wt)*1e3), fontsize=10)
-    plt.xlabel("x (km)")
-    plt.ylabel("y (km)")
-    plt.title(title,fontsize=11)
 
+## ================= PLOT Ekman Transport ====================
+
+#we_range = np.linspace(-0.02, 0.02, 101, endpoint=True)
 fig = plt.figure(figsize=(5,8))
 ax1 = plt.subplot(211)
-title5=r'$\overline{M_e^x}=\overline{\int \, U_e}$ day %d-%d' % (day_s, day_e)
-subplot_Me(Mx_ekman, title5)
+plt.contourf(xc_dom,yc_dom,Mx_ekman[plta:pltb, plta:pltb],101,norm=MidpointNormalize(midpoint=Mx_ekman[plta+1,plta+1]),cmap=cm.seismic)
+cb = plt.colorbar(format='%1.3f')
+cb.set_label(r'$M_e \, (m^2/s)$', labelpad=-40, y=1.1, rotation=0)
+rmax1 = plt.Circle((XC[icy,icx]*1e-3, YC[icy,icx]*1e-3), Rmax*1e-3, color='r',ls=':', fill=False)
+rmax11 = plt.Circle((XC[icy,icx]*1e-3, YC[icy,icx]*1e-3), Rmax*2e-3, color='r',ls=':', fill=False)
+ax1.add_artist(rmax1)
+ax1.add_artist(rmax11)
+#CS2 = plt.contour(xc_dom,yc_dom,Wmint[plta:pltb,plta:pltb]*1e3, levels, colors='0.6')
+#plt.clabel(CS2, fmt='%2.2f', colors='k', fontsize=10)
 ax1.set_aspect(1)
-#ax1.add_artist(rmax1)
-#ax1.add_artist(rmax11)
+#plt.text(480,480,'$W_{extrema}=$ [%1.3f, %1.3f] $mm/s$' % (np.min(Wm_wt)*1e3,np.max(Wm_wt)*1e3), fontsize=10)
+plt.xlabel("x (km)")
+plt.ylabel("y (km)")
+#    plt.title('Vertically averaged W at $z[0, %d]m$, timestep %d hr' % (RC[idepth],int(it*timestep/3600)),fontsize=11)
+plt.title(r'$\overline{M_e^x}=\overline{\int \, U_e}$ day %d-%d' % (day_s, day_e),fontsize=11)
 #
 ax2 = plt.subplot(212, sharex=ax1)
 ax2.set_aspect(1)
-title6=r'$\overline{M_e^y}=\overline{\int \, V_e}$ day %d-%d' % (day_s, day_e)
-subplot_Me(My_ekman, title6)
-#ax2.add_artist(rmax1)
-#ax2.add_artist(rmax11)
+plt.contourf(xc_dom,yc_dom,My_ekman[plta:pltb, plta:pltb],101,norm=MidpointNormalize(midpoint=My_ekman[pltb,pltb]),cmap=cm.seismic)
+cb=plt.colorbar(format='%1.3f')
+cb.set_label(r'$M_e \, (m^2/s)$', labelpad=-40, y=1.1, rotation=0)
+rmax2 = plt.Circle((XC[icy,icx]*1e-3, YC[icy,icx]*1e-3), Rmax*1e-3, color='r',ls=':', fill=False)
+rmax12 = plt.Circle((XC[icy,icx]*1e-3, YC[icy,icx]*1e-3), Rmax*2e-3, color='r',ls=':', fill=False)
+ax2.add_artist(rmax2)
+ax2.add_artist(rmax12)
 #CS1 = plt.contour(YC[plta:pltb,int(si_x/2)]*1e-3,RC.squeeze(),W[:,plta:pltb,int(si_x/2)]*1e3, levels, colors='0.6')
 #plt.clabel(CS1, fmt='%2.2f', colors='k', fontsize=10)
 #plt.text(480,480,'$W_{extrema}=$ [%1.3f, %1.3f] $mm/s$' % (np.min(Wm_stern)*1e3,np.max(Wm_stern)*1e3), fontsize=10)
+
+plt.xlabel("x (km)")
+plt.ylabel("y (km)")
 #    plt.title('Vertical velocity $W_{num}$ at $x=%dkm$, timestep %d hr' % (XC[int(si_x/2),int(si_x/2)]*1e-3,int(it*timestep/3600)), fontsize=11)
+    #
+plt.title(r'$\overline{M_e^y}=\overline{\int \, V_e}$ day %d-%d' % (day_s, day_e),fontsize=11)
 #plt.text(520,-320,'$W_{extrema}=$[%1.3f, %1.3f] $mm/s$' % (wmin, wmax), fontsize=10)
 plt.tight_layout(pad = 1)
 plt.savefig('./figures/Me_day%d-%d.png' % (day_s, day_e))
@@ -618,20 +718,43 @@ plt.savefig('./figures/Me_day%d-%d.png' % (day_s, day_e))
 #==================== Ekman transport WT
 fig = plt.figure(figsize=(5,8))
 ax1 = plt.subplot(211)
-title7=r'$\overline{M_e^x}=\overline{\int \, U_e}$ day %d-%d' % (day_s, day_e)
-subplot_Me(Mx_WTm, title7)
+plt.contourf(xc_dom,yc_dom,Mx_WTm[plta:pltb, plta:pltb],101,norm=MidpointNormalize(midpoint=Mx_WTm[plta+1,plta+1]),cmap=cm.seismic)
+cb = plt.colorbar(format='%1.3f')
+cb.set_label(r'$M_e \, (m^2/s)$', labelpad=-40, y=1.1, rotation=0)
+rmax1 = plt.Circle((XC[icy,icx]*1e-3, YC[icy,icx]*1e-3), Rmax*1e-3, color='r',ls=':', fill=False)
+rmax11 = plt.Circle((XC[icy,icx]*1e-3, YC[icy,icx]*1e-3), Rmax*2e-3, color='r',ls=':', fill=False)
+ax1.add_artist(rmax1)
+ax1.add_artist(rmax11)
+#CS2 = plt.contour(xc_dom,yc_dom,Wmint[plta:pltb,plta:pltb]*1e3, levels, colors='0.6')
+#plt.clabel(CS2, fmt='%2.2f', colors='k', fontsize=10)
 ax1.set_aspect(1)
-#ax1.add_artist(rmax1)
-#ax1.add_artist(rmax11)
+#plt.text(480,480,'$W_{extrema}=$ [%1.3f, %1.3f] $mm/s$' % (np.min(Wm_wt)*1e3,np.max(Wm_wt)*1e3), fontsize=10)
+plt.xlabel("x (km)")
+plt.ylabel("y (km)")
+#    plt.title('Vertically averaged W at $z[0, %d]m$, timestep %d hr' % (RC[idepth],int(it*timestep/3600)),fontsize=11)
+plt.title(r'$\overline{M_e^x}=\overline{\int \, U_e}$ day %d-%d' % (day_s, day_e),fontsize=11)
 #
 ax2 = plt.subplot(212, sharex=ax1)
-title7=r'$\overline{M_e^y}=\overline{\int \, U_e}$ day %d-%d' % (day_s, day_e)
-subplot_Me(My_WTm, title7)
 ax2.set_aspect(1)
-#ax2.add_artist(rmax1)
-#ax2.add_artist(rmax11)
+plt.contourf(xc_dom,yc_dom,My_WTm[plta:pltb, plta:pltb],101,norm=MidpointNormalize(midpoint=My_WTm[pltb,pltb]),cmap=cm.seismic)
+cb=plt.colorbar(format='%1.3f')
+cb.set_label(r'$M_e \, (m^2/s)$', labelpad=-40, y=1.1, rotation=0)
+rmax2 = plt.Circle((XC[icy,icx]*1e-3, YC[icy,icx]*1e-3), Rmax*1e-3, color='r',ls=':', fill=False)
+rmax12 = plt.Circle((XC[icy,icx]*1e-3, YC[icy,icx]*1e-3), Rmax*2e-3, color='r',ls=':', fill=False)
+ax2.add_artist(rmax2)
+ax2.add_artist(rmax12)
+#CS1 = plt.contour(YC[plta:pltb,int(si_x/2)]*1e-3,RC.squeeze(),W[:,plta:pltb,int(si_x/2)]*1e3, levels, colors='0.6')
+#plt.clabel(CS1, fmt='%2.2f', colors='k', fontsize=10)
+#plt.text(480,480,'$W_{extrema}=$ [%1.3f, %1.3f] $mm/s$' % (np.min(Wm_stern)*1e3,np.max(Wm_stern)*1e3), fontsize=10)
+
+plt.xlabel("x (km)")
+plt.ylabel("y (km)")
+#    plt.title('Vertical velocity $W_{num}$ at $x=%dkm$, timestep %d hr' % (XC[int(si_x/2),int(si_x/2)]*1e-3,int(it*timestep/3600)), fontsize=11)
+    #
+plt.title(r'$\overline{M_e^y}=\overline{\int \, V_e}$ day %d-%d' % (day_s, day_e),fontsize=11)
 #plt.text(520,-320,'$W_{extrema}=$[%1.3f, %1.3f] $mm/s$' % (wmin, wmax), fontsize=10)
 plt.tight_layout (pad = 1)
 plt.savefig('./figures/Me_WT_day%d-%d.png' % (day_s, day_e))
+
 #
 #####################################################################
